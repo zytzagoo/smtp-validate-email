@@ -196,7 +196,11 @@ class SMTP_Validate_Email {
             $this->set_sender($sender);
         }
 
-        // query the MTAs on each domain
+        if (!is_array($this->domains) || empty($this->domains)) {
+            return $this->results;
+        }
+
+        // query the MTAs on each domain if we have them
         foreach ($this->domains as $domain => $users) {
 
             $mxs = array();
