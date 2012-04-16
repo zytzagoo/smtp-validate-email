@@ -360,6 +360,7 @@ class SMTP_Validate_Email {
         );
         // connected?
         if (!$this->connected()) {
+            $this->debug('Connect failed: ' . $errstr . ', error number: ' . $errnum . ', host: ' . $this->host);
             throw new SMTP_Validate_Email_Exception_No_Connection('Cannot ' .
             'open a connection to remote host (' . $this->host . ')');
         }
