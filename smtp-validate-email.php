@@ -1,7 +1,7 @@
 <?php
 /**
 * SMTP_Validate_Email - Perform email address verification via SMTP.
-* Copyright (C) 2009 Tomaö Trkulja [zytzagoo] <zyt@zytzagoo.net>
+* Copyright (C) 2009 Toma≈° Trkulja [zytzagoo] <zyt@zytzagoo.net>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
