@@ -624,7 +624,7 @@ class SMTP_Validate_Email {
         try {
 
             $text = $line = $this->recv($timeout);
-            while (ereg("^[0-9]+-", $line)) {
+            while (preg_match("/^[0-9]+-/", $line)) {
                 $line = $this->recv($timeout);
                 $text .= $line;
             }
