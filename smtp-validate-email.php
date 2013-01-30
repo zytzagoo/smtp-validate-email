@@ -1,7 +1,7 @@
 <?php
 /**
 * SMTP_Validate_Email - Perform email address verification via SMTP.
-* Copyright (C) 2009 TomaÅ¡ Trkulja [zytzagoo] <zyt@zytzagoo.net>
+* Copyright (C) 2009 Tomaš Trkulja [zytzagoo] <zyt@zytzagoo.net>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
-* @version 0.5
+* @version 0.6
 * @todo
 *   - finish the graylisting thingy
 *   - perhaps re-implement some methods as static?
@@ -50,6 +50,8 @@ class SMTP_Validate_Email {
 
     // holds all the domains we'll validate accounts on
     private $domains;
+    
+    private $domains_info = array();
 
     // connect timeout for each MTA attempted (seconds)
     private $connect_timeout = 10;
@@ -178,6 +180,25 @@ class SMTP_Validate_Email {
     public function __destruct() {
         $this->disconnect(false);
     }
+    
+    public function accepts_any_recipient($domain) {
+        $test = 'catch-all-test-' . time();
+        $accepted = $this->rcpt($test . '@' . $domain);
+        if ($accepted) {
+            // success on a non-existing address is a "catch-all"
+            $this->domains_info[$domain]['catchall'] = true;
+            return true;
+        }
+        // log the case in which we get disconnected
+        // while trying to perform a catchall detect
+        $this->noop();
+        if (!($this->connected())) {
+            $this->debug('Disconnected after trying a non-existing recipient on ' . $domain);
+        }
+        // nb: disconnects are considered as a non-catch-all case this way
+        // this might not be true always
+        return false;
+    }
 
     /**
     * Performs validation of specified email addresses.
@@ -218,6 +239,9 @@ class SMTP_Validate_Email {
             $mxs[$domain] = 0;
 
             $this->debug('MX records (' . $domain . '): ' . print_r($mxs, true));
+            $this->domains_info[$domain] = array();
+            $this->domains_info[$domain]['users'] = $users;
+            $this->domains_info[$domain]['mxs'] = $mxs;
 
             // try each host
             while (list($host) = each($mxs)) {
@@ -254,25 +278,18 @@ class SMTP_Validate_Email {
                     if ($this->connected()) {
 
                         $this->noop();
-
-                        // catch-all detection if requested
-                        if (!($this->catchall_is_valid)) {
-                            $garbage = 'catch-all-test-' . time();
-                            $garbage_accepted = $this->rcpt($garbage . '@' . $domain);
-                            if ($garbage_accepted) {
-                                // success on a non-existing address is a "catch-all"
+                        
+                        // Do a catch-all test for the domain always.
+                        // This increases checking time for a domain slightly,
+                        // but doesn't confuse users.
+                        $is_catchall_domain = $this->accepts_any_recipient($domain);
+                        
+                        // if a catchall domain is detected, and we consider
+                        // accounts on such domains as invalid, mark all the 
+                        // users as invalid and move on
+                        if ($is_catchall_domain) {
+                            if (!($this->catchall_is_valid)) {
                                 $this->set_domain_results($users, $domain, $this->catchall_is_valid);
-                                // since catchall is not considered valid, disconnect
-                                // and move to the next domain
-                                $this->disconnect();
-                                continue;
-                            }
-                            // take care of the case in which we get disconnected
-                            // while trying to test catchall accounts
-                            $this->noop();
-                            if (!($this->connected())) {
-                                $this->debug('Disconnected after testing catchall detection.');
-                                $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
                                 continue;
                             }
                         }
@@ -309,8 +326,15 @@ class SMTP_Validate_Email {
 
         }
 
-        return $this->results;
+        return $this->get_results();
 
+    }
+    
+    public function get_results($include_domains_info = true) {
+        if ($include_domains_info) {
+            $this->results['domains'] = $this->domains_info;
+        }
+        return $this->results;
     }
 
     /**
@@ -624,7 +648,7 @@ class SMTP_Validate_Email {
         try {
 
             $text = $line = $this->recv($timeout);
-            while (ereg("^[0-9]+-", $line)) {
+            while (preg_match("/^[0-9]+-/", $line)) {
                 $line = $this->recv($timeout);
                 $text .= $line;
             }
