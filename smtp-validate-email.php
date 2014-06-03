@@ -41,6 +41,7 @@ class SMTP_Validate_Email_Exception_No_Helo extends SMTP_Validate_Email_Exceptio
 class SMTP_Validate_Email_Exception_No_Mail_From extends SMTP_Validate_Email_Exception {}
 class SMTP_Validate_Email_Exception_No_Timeout extends SMTP_Validate_Email_Exception {}
 class SMTP_Validate_Email_Exception_No_TLS extends SMTP_Validate_Email_Exception {}
+class SMTP_Validate_Email_Exception_Send_Failed extends SMTP_Validate_Email_Exception {}
 
 // SMTP validation class
 class SMTP_Validate_Email {
