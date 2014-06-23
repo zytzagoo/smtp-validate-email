@@ -520,7 +520,7 @@ class SMTP_Validate_Email {
             self::SMTP_USER_NOT_LOCAL
         );
         if ($this->greylisted_considered_valid) {
-            $expected_codes += $this->greylisted;
+            $expected_codes = array_merge($expected_codes, $this->greylisted);
         }
         // issue RCPT TO, 5 minute timeout
         try {
