@@ -121,7 +121,7 @@ class SMTP_Validate_Email {
         'tls'  => 180, // start tls
         'mail' => 300, // mail from
         'rcpt' => 300, // rcpt to,
-        'rset' => 3,
+        'rset' => 30,
         'quit' => 300,
         'noop' => 300
     );
