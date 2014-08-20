@@ -67,7 +67,7 @@ class SMTP_Validate_Email {
     private $host = null;
 
     // holds all the debug info
-    private $log = array();
+    public $log = array();
 
     // array of validation results
     private $results = array();
@@ -91,6 +91,7 @@ class SMTP_Validate_Email {
     * has a "catch-all", sets all the emails on that domain as invalid.
     */
     public $catchall_is_valid = true;
+    public $catchall_test = false; // Set to true to perform a catchall test
 
     /**
     * Being unable to communicate with the remote MTA could mean an address
@@ -116,14 +117,14 @@ class SMTP_Validate_Email {
     * @see expect()
     */
     protected $command_timeouts = array(
-        'ehlo' => 300,
-        'helo' => 300,
+        'ehlo' => 120,
+        'helo' => 120,
         'tls'  => 180, // start tls
         'mail' => 300, // mail from
         'rcpt' => 300, // rcpt to,
         'rset' => 30,
-        'quit' => 300,
-        'noop' => 300
+        'quit' => 60,
+        'noop' => 60
     );
 
     // some constants
@@ -183,6 +184,10 @@ class SMTP_Validate_Email {
     }
     
     public function accepts_any_recipient($domain) {
+        if($this->catchall_test == false)
+        {
+            return false;
+        }
         $test = 'catch-all-test-' . time();
         $accepted = $this->rcpt($test . '@' . $domain);
         if ($accepted) {
@@ -261,68 +266,82 @@ class SMTP_Validate_Email {
 
             // are we connected?
             if ($this->connected()) {
+				try {
+					// say helo, and continue if we can talk
+					if ($this->helo()) {
 
-                // say helo, and continue if we can talk
-                if ($this->helo()) {
+						// try issuing MAIL FROM
+						if (!($this->mail($this->from_user . '@' . $this->from_domain))) {
+							// MAIL FROM not accepted, we can't talk
+							$this->set_domain_results($users, $domain, $this->no_comm_is_valid);
+						}
 
-                    // try issuing MAIL FROM
-                    if (!($this->mail($this->from_user . '@' . $this->from_domain))) {
-                        // MAIL FROM not accepted, we can't talk
-                        $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
-                    }
+						/**
+						* if we're still connected, proceed (cause we might get
+						* disconnected, or banned, or greylisted temporarily etc.)
+						* see mail() for more
+						*/
+						if ($this->connected()) {
 
-                    /**
-                    * if we're still connected, proceed (cause we might get
-                    * disconnected, or banned, or greylisted temporarily etc.)
-                    * see mail() for more
-                    */
-                    if ($this->connected()) {
+							$this->noop();
+							
+							// Do a catch-all test for the domain always.
+							// This increases checking time for a domain slightly,
+							// but doesn't confuse users.
+							$is_catchall_domain = $this->accepts_any_recipient($domain);
+							
+							// if a catchall domain is detected, and we consider
+							// accounts on such domains as invalid, mark all the 
+							// users as invalid and move on
+							if ($is_catchall_domain) {
+								if (!($this->catchall_is_valid)) {
+									$this->set_domain_results($users, $domain, $this->catchall_is_valid);
+									continue;
+								}
+							}
 
-                        $this->noop();
-                        
-                        // Do a catch-all test for the domain always.
-                        // This increases checking time for a domain slightly,
-                        // but doesn't confuse users.
-                        $is_catchall_domain = $this->accepts_any_recipient($domain);
-                        
-                        // if a catchall domain is detected, and we consider
-                        // accounts on such domains as invalid, mark all the 
-                        // users as invalid and move on
-                        if ($is_catchall_domain) {
-                            if (!($this->catchall_is_valid)) {
-                                $this->set_domain_results($users, $domain, $this->catchall_is_valid);
-                                continue;
-                            }
-                        }
+							// if we're still connected, try issuing rcpts
+							if ($this->connected()) {
+								$this->noop();
+								// rcpt to for each user
+								foreach ($users as $user) {
+									$address = $user . '@' . $domain;
+									$this->results[$address] = $this->rcpt($address);
+									$this->noop();
+								}
+							}
 
-                        // if we're still connected, try issuing rcpts
-                        if ($this->connected()) {
-                            $this->noop();
-                            // rcpt to for each user
-                            foreach ($users as $user) {
-                                $address = $user . '@' . $domain;
-                                $this->results[$address] = $this->rcpt($address);
-                                $this->noop();
-                            }
-                        }
+							// saying buh-bye if we're still connected, cause we're done here
+							if ($this->connected()) {
+								// issue a rset for all the things we just made the MTA do
+								$this->rset();
+								// kiss it goodbye
+								$this->disconnect();
+							}
 
-                        // saying buh-bye if we're still connected, cause we're done here
-                        if ($this->connected()) {
-                            // issue a rset for all the things we just made the MTA do
-                            $this->rset();
-                            // kiss it goodbye
-                            $this->disconnect();
-                        }
+						}
 
-                    }
+					} else {
 
-                } else {
+						// we didn't get a good response to helo and should be disconnected already
+						$this->set_domain_results($users, $domain, $this->no_comm_is_valid);
 
-                    // we didn't get a good response to helo and should be disconnected already
-                    $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
-
-                }
-
+					}
+				}
+				catch(SMTP_Validate_Email_Exception_No_Connection $e)
+				{
+					foreach ($users as $user) {
+							$address = $user . '@' . $domain;
+						$this->results[$address] = true;
+						}
+				}
+				catch(SMTP_Validate_Email_Exception_Timeout $e)
+				{
+					foreach ($users as $user) {
+							$address = $user . '@' . $domain;
+						$this->results[$address] = true;
+						}
+				}
             }
 
         }
@@ -456,6 +475,10 @@ class SMTP_Validate_Email {
             $this->debug('Unexpected response after connecting: ' . $e->getMessage());
             $this->disconnect(false);
             return false;
+        } catch (SMTP_Validate_Email_Exception_No_Connection $e) {
+            $this->debug('Cannot connect : ' . $e->getMessage());
+            $this->disconnect(false);
+            return false;
         }
     }
 
@@ -550,9 +573,10 @@ class SMTP_Validate_Email {
             self::SMTP_GENERIC_SUCCESS,
             self::SMTP_CONNECT_SUCCESS,
             // hotmail returns this o_O
-            self::SMTP_TRANSACTION_FAILED
+            self::SMTP_TRANSACTION_FAILED,
+			502 // Some SMTP returns this when rset is not allowed
         );
-        $this->expect($expected, $this->command_timeouts['rset']);
+        $this->expect($expected, $this->command_timeouts['rset'], true);
         $this->state['mail'] = false;
         $this->state['rcpt'] = false;
     }
@@ -564,9 +588,8 @@ class SMTP_Validate_Email {
     protected function quit() {
         // although RFC says QUIT can be issued at any time, we won't
         if ($this->state['helo']) {
-            // [TODO] might need a try/catch here to cover some edge cases...
             $this->send('QUIT');
-            $this->expect(self::SMTP_QUIT_SUCCESS, $this->command_timeouts['quit']);
+			$this->expect(array(self::SMTP_GENERIC_SUCCESS,self::SMTP_QUIT_SUCCESS), $this->command_timeouts['quit'], true);
         }
     }
 
@@ -576,7 +599,8 @@ class SMTP_Validate_Email {
     */
     protected function noop() {
         $this->send('NOOP');
-        $this->expect(self::SMTP_GENERIC_SUCCESS, $this->command_timeouts['noop']);
+		// erg... "SMTP" code fix some bad RFC implementations
+        $this->expect(array('SMTP',503,502,500,220,self::SMTP_GENERIC_SUCCESS), $this->command_timeouts['noop'], true);
     }
 
     /**
@@ -637,10 +661,11 @@ class SMTP_Validate_Email {
     * Receives lines from the remote host and looks for expected response codes.
     * @param array $codes   A list of one or more expected response codes
     * @param int $timeout   The timeout for this individual command, if any
+    * @param int $null_allowed	If true, non-response/ is not allowed
     * @return string        The last text message received
     * @throws SMTP_Validate_Email_Exception_Unexpected_Response
     */
-    protected function expect($codes, $timeout = null) {
+    protected function expect($codes, $timeout = null, $null_allowed = false) {
         if (!is_array($codes)) {
             $codes = (array) $codes;
         }
@@ -654,7 +679,11 @@ class SMTP_Validate_Email {
                 $text .= $line;
             }
             sscanf($line, '%d%s', $code, $text);
-            if ($code === null || !in_array($code, $codes)) {
+            if($code == self::SMTP_SERVICE_UNAVAILABLE)
+            {
+				throw new SMTP_Validate_Email_Exception_No_Response($line);
+            }
+            if ($null_allowed === false && ($code === null || !in_array($code, $codes))) {
                 throw new SMTP_Validate_Email_Exception_Unexpected_Response($line);
             }
 
