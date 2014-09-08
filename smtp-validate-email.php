@@ -331,20 +331,19 @@ class SMTP_Validate_Email {
                         $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
 
                     }
-                }
-                catch(SMTP_Validate_Email_Exception_Unexpected_Response $e)
-                {
-                    foreach ($users as $user) {
-                        $address = $user . '@' . $domain;
-                        $this->results[$address] = true;
-                    }
-                }
-                catch(SMTP_Validate_Email_Exception_Timeout $e)
-                {
-                    foreach ($users as $user) {
-                        $address = $user . '@' . $domain;
-                        $this->results[$address] = true;
-                    }
+
+                } catch (SMTP_Validate_Email_Exception_Unexpected_Response $e) {
+
+                    // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
+                    // decide for themselves if such results are considered valid or not
+                    $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
+
+                } catch (SMTP_Validate_Email_Exception_Timeout $e) {
+
+                    // A timeout is a comm failure, so treat the results on that domain
+                    // according to $this->no_comm_is_valid as well
+                    $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
+
                 }
             }
 
