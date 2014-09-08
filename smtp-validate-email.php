@@ -51,7 +51,7 @@ class SMTP_Validate_Email {
 
     // holds all the domains we'll validate accounts on
     private $domains;
-    
+
     private $domains_info = array();
 
     // connect timeout for each MTA attempted (seconds)
@@ -189,10 +189,9 @@ class SMTP_Validate_Email {
     public function __destruct() {
         $this->disconnect(false);
     }
-    
+
     public function accepts_any_recipient($domain) {
-        if($this->catchall_test == false)
-        {
+        if (!$this->catchall_test) {
             return false;
         }
         $test = 'catch-all-test-' . time();
@@ -291,14 +290,12 @@ class SMTP_Validate_Email {
                         if ($this->connected()) {
 
                             $this->noop();
-                            
-                            // Do a catch-all test for the domain always.
-                            // This increases checking time for a domain slightly,
-                            // but doesn't confuse users.
+
+                            // attempt a catch-all test for the domain (if configured to do so)
                             $is_catchall_domain = $this->accepts_any_recipient($domain);
-                            
+
                             // if a catchall domain is detected, and we consider
-                            // accounts on such domains as invalid, mark all the 
+                            // accounts on such domains as invalid, mark all the
                             // users as invalid and move on
                             if ($is_catchall_domain) {
                                 if (!($this->catchall_is_valid)) {
@@ -356,7 +353,7 @@ class SMTP_Validate_Email {
         return $this->get_results();
 
     }
-    
+
     public function get_results($include_domains_info = true) {
         if ($include_domains_info) {
             $this->results['domains'] = $this->domains_info;
@@ -491,11 +488,11 @@ class SMTP_Validate_Email {
     */
     protected function ehlo() {
         try {
-            // modern, timeout 5 minutes
+            // modern
             $this->send('EHLO ' . $this->from_domain);
             $this->expect(self::SMTP_GENERIC_SUCCESS, $this->command_timeouts['ehlo']);
         } catch (SMTP_Validate_Email_Exception_Unexpected_Response $e) {
-            // legacy, timeout 5 minutes
+            // legacy
             $this->send('HELO ' . $this->from_domain);
             $this->expect(self::SMTP_GENERIC_SUCCESS, $this->command_timeouts['helo']);
         }
@@ -522,8 +519,8 @@ class SMTP_Validate_Email {
         } catch (SMTP_Validate_Email_Exception_Unexpected_Response $e) {
             // got something unexpected in response to MAIL FROM
             $this->debug("Unexpected response to MAIL FROM\n:" . $e->getMessage());
-            // hotmail is know to do this, and is closing the connection
-            // forcibly on their end, so I'm killing the socket here too
+            // hotmail has been known to do this + was closing the connection
+            // forcibly on their end, so we're killing the socket here too
             $this->disconnect(false);
             return false;
         }
@@ -672,10 +669,10 @@ class SMTP_Validate_Email {
 
     /**
     * Receives lines from the remote host and looks for expected response codes.
-    * @param array $codes   A list of one or more expected response codes
-    * @param int $timeout   The timeout for this individual command, if any
-    * @param int $empty_response_allowed    If true, empty response is not allowed
-    * @return string        The last text message received
+    * @param array $codes A list of one or more expected response codes
+    * @param int $timeout The timeout for this individual command, if any
+    * @param bool $empty_response_allowed When true, empty responses are not allowed
+    * @return string The last text message received
     * @throws SMTP_Validate_Email_Exception_Unexpected_Response
     */
     protected function expect($codes, $timeout = null, $empty_response_allowed = false) {
@@ -822,8 +819,8 @@ class SMTP_Validate_Email {
     }
 
     /**
-    * Adds a message to the private log array
-    * @param string $msg    The message to add
+    * Adds a message to the log array
+    * @param string $msg The message to add
     */
     private function log($msg) {
         $this->log[] = $msg;
