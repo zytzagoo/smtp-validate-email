@@ -100,6 +100,13 @@ class SMTP_Validate_Email {
     */
     public $no_comm_is_valid = false;
 
+    /**
+     * Being unable to connect with the remote host could mean a server
+     * configuration issue, but it might not, depending on your use case,
+     * set the value appropriately.
+     */
+    public $no_conn_is_valid = false;
+
     // do we consider "greylisted" responses as valid or invalid addresses
     public $greylisted_considered_valid = true;
 
@@ -266,7 +273,7 @@ class SMTP_Validate_Email {
                 } catch (SMTP_Validate_Email_Exception_No_Connection $e) {
                     // unable to connect to host, so these addresses are invalid?
                     $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
-                    $this->set_domain_results($users, $domain, false);
+                    $this->set_domain_results($users, $domain, $this->no_conn_is_valid );
                 }
             }
 
