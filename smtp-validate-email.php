@@ -418,7 +418,7 @@ class SMTP_Validate_Email {
             throw new SMTP_Validate_Email_Exception_No_Connection('Cannot ' .
             'open a connection to remote host (' . $this->host . ')');
         }
-        $result = stream_set_timeout($this->socket, $this->connect_timeout);
+        $result =   $this->stream_set_timeout($this->connect_timeout);
         if (!$result) {
             throw new SMTP_Validate_Email_Exception_No_Timeout('Cannot set timeout');
         }
@@ -643,6 +643,24 @@ class SMTP_Validate_Email {
     }
 
     /**
+    * @param int $ms Timeout in miliseconds
+    * @return bool
+    */
+    private function stream_set_timeout($ms = null)
+    {
+
+        // timeout specified?
+        if ($ms !== null)
+        {
+            $s = intval($ms / 1000);
+            $us = intval($ms  * 1000);
+
+            return stream_set_timeout($this->socket, $s, $us);
+        }
+    }
+
+
+   /**
     * Receives a response line from the remote host.
     * @param int $timeout Timeout in seconds
     * @return string
@@ -654,10 +672,8 @@ class SMTP_Validate_Email {
         if (!$this->connected()) {
             throw new SMTP_Validate_Email_Exception_No_Connection('No connection');
         }
-        // timeout specified?
-        if ($timeout !== null) {
-            stream_set_timeout($this->socket, $timeout);
-        }
+        $this->stream_set_timeout($timeout);
+
         // retrieve response
         $line = fgets($this->socket, 1024);
         $this->debug('<<<recv: ' . $line);
