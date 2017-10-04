@@ -815,6 +815,7 @@ class SMTP_Validate_Email {
     * @return void
     */
     private function debug($str) {
+        $str = $this->stamp($str);
         $this->log($str);
         if ($this->debug == true) {
             if (PHP_SAPI != 'cli') {
@@ -833,6 +834,20 @@ class SMTP_Validate_Email {
     }
 
     /**
+     * Prepends the given $msg with the current date and time inside square brackets.
+     *
+     * @param string $msg
+     *
+     * @return string
+     */
+    private function stamp($msg) {
+        $date = \DateTime::createFromFormat('U.u', sprintf('%.f', microtime(true)))->format('Y-m-d\TH:i:s.uO');
+        $line = '[' . $date . '] ' . $msg;
+
+        return $line;
+    }
+
+    /**
     * Returns the log array
     */
     public function get_log() {
@@ -845,5 +860,4 @@ class SMTP_Validate_Email {
     public function clear_log() {
         $this->log = array();
     }
-
 }
