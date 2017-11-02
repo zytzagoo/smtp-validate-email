@@ -677,7 +677,7 @@ class SMTP_Validate_Email {
     * Receives lines from the remote host and looks for expected response codes.
     * @param int|int[] $codes A list of one or more expected response codes
     * @param int $timeout The timeout for this individual command, if any
-    * @param bool $empty_response_allowed When true, empty responses are not allowed
+    * @param bool $empty_response_allowed When true, empty responses are allowed
     * @return string The last text message received
     * @throws SMTP_Validate_Email_Exception_Unexpected_Response
     */
