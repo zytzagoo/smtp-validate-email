@@ -454,12 +454,12 @@ class SMTP_Validate_Email {
     /**
     * Sends a HELO/EHLO sequence
     * @todo Implement TLS
-    * @return bool  True if successful, false otherwise
+    * @return bool|null  True if successful, false otherwise
     */
     protected function helo() {
         // don't try if it was already done
         if ($this->state['helo']) {
-            return;
+            return null;
         }
         try {
             $this->expect(self::SMTP_CONNECT_SUCCESS, $this->command_timeouts['helo']);
@@ -647,7 +647,7 @@ class SMTP_Validate_Email {
     * @param int $timeout Timeout in seconds
     * @return string
     * @throws SMTP_Validate_Email_Exception_No_Connection
-    * @throws SMTP_Validate_Email_Exception_Socket_Timeout
+    * @throws SMTP_Validate_Email_Exception_Timeout
     * @throws SMTP_Validate_Email_Exception_No_Response
     */
     protected function recv($timeout = null) {
@@ -675,7 +675,7 @@ class SMTP_Validate_Email {
 
     /**
     * Receives lines from the remote host and looks for expected response codes.
-    * @param array $codes A list of one or more expected response codes
+    * @param int|int[] $codes A list of one or more expected response codes
     * @param int $timeout The timeout for this individual command, if any
     * @param bool $empty_response_allowed When true, empty responses are not allowed
     * @return string The last text message received
@@ -771,10 +771,14 @@ class SMTP_Validate_Email {
     }
 
     /**
-    * Provides a windows replacement for the getmxrr function.
-    * Params and behaviour is that of the regular getmxrr function.
-    * @see  http://www.php.net/getmxrr
-    */
+     * Provides a windows replacement for the getmxrr function.
+     * Params and behaviour is that of the regular getmxrr function.
+     * @see  http://www.php.net/getmxrr
+     * @param string $hostname
+     * @param string[] $mxhosts
+     * @param int[] $mxweights
+     * @return bool|null
+     */
     protected function getmxrr($hostname, &$mxhosts, &$mxweights) {
         if (!is_array($mxhosts)) {
             $mxhosts = array();
@@ -783,7 +787,7 @@ class SMTP_Validate_Email {
             $mxweights = array();
         }
         if (empty($hostname)) {
-            return;
+            return null;
         }
         $cmd = 'nslookup -type=MX ' . escapeshellarg($hostname);
         if (!empty($this->mx_query_ns)) {
@@ -791,7 +795,7 @@ class SMTP_Validate_Email {
         }
         exec($cmd, $output);
         if (empty($output)) {
-            return;
+            return null;
         }
         $i = -1;
         foreach ($output as $line) {
