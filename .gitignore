@@ -1,2 +1,4 @@
 nbproject
 tests.php
+composer.lock
+vendor/
