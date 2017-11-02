@@ -55,7 +55,7 @@ class SMTP_Validate_Email {
     private $domains_info = array();
 
     // connect timeout for each MTA attempted (seconds)
-    private $connect_timeout = 10;
+    public $connect_timeout = 10;
 
     // default username of sender
     private $from_user = 'user';
@@ -83,7 +83,7 @@ class SMTP_Validate_Email {
     public $debug = false;
 
     // default smtp port
-    public $connect_port = 25;
+    public $connect_port = [ 25, 587 ];
 
     /**
     * Are 'catch-all' accounts considered valid or not?
@@ -263,83 +263,85 @@ class SMTP_Validate_Email {
             $this->domains_info[$domain]['mxs'] = $mxs;
 
             // try each host
-            while (list($host) = each($mxs)) {
+            $hosts = [];
+            foreach ($mxs as $h => $v)
+                foreach ($this->connect_port as $port)
+                    $hosts[] = $h . ':' . $port;
+
+
+            foreach ($hosts as $host)
+            {
                 // try connecting to the remote host
                 try {
+
+
                     $this->connect($host);
                     if ($this->connected()) {
-                        break;
-                    }
-                } catch (SMTP_Validate_Email_Exception_No_Connection $e) {
-                    // unable to connect to host, so these addresses are invalid?
-                    $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
-                    $this->set_domain_results($users, $domain, $this->no_conn_is_valid );
-                }
-            }
-
-            // are we connected?
-            if ($this->connected()) {
-                try {
-                    // say helo, and continue if we can talk
+                        // say helo, and continue if we can talk
                     if ($this->helo()) {
 
-                        // try issuing MAIL FROM
+                            // try issuing MAIL FROM
                         if (!($this->mail($this->from_user . '@' . $this->from_domain))) {
-                            // MAIL FROM not accepted, we can't talk
-                            $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
-                        }
+                                // MAIL FROM not accepted, we can't talk
+                                $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
+                            }
 
-                        /**
-                        * if we're still connected, proceed (cause we might get
-                        * disconnected, or banned, or greylisted temporarily etc.)
-                        * see mail() for more
-                        */
+                            /**
+                             * if we're still connected, proceed (cause we might get
+                             * disconnected, or banned, or greylisted temporarily etc.)
+                             * see mail() for more
+                             */
                         if ($this->connected()) {
 
-                            $this->noop();
+                                $this->noop();
 
-                            // attempt a catch-all test for the domain (if configured to do so)
-                            $is_catchall_domain = $this->accepts_any_recipient($domain);
+                                // attempt a catch-all test for the domain (if configured to do so)
+                                $is_catchall_domain = $this->accepts_any_recipient($domain);
 
-                            // if a catchall domain is detected, and we consider
-                            // accounts on such domains as invalid, mark all the
-                            // users as invalid and move on
+                                // if a catchall domain is detected, and we consider
+                                // accounts on such domains as invalid, mark all the
+                                // users as invalid and move on
                             if ($is_catchall_domain) {
                                 if (!($this->catchall_is_valid)) {
-                                    $this->set_domain_results($users, $domain, $this->catchall_is_valid);
-                                    continue;
+                                        $this->set_domain_results($users, $domain, $this->catchall_is_valid);
+                                        continue;
+                                    }
                                 }
-                            }
 
-                            // if we're still connected, try issuing rcpts
+                                // if we're still connected, try issuing rcpts
                             if ($this->connected()) {
-                                $this->noop();
-                                // rcpt to for each user
-                                foreach ($users as $user) {
-                                    $address = $user . '@' . $domain;
-                                    $this->results[$address] = $this->rcpt($address);
                                     $this->noop();
+                                    // rcpt to for each user
+                                foreach ($users as $user) {
+                                        $address                 = $user . '@' . $domain;
+                                        $this->results[$address] = $this->rcpt($address);
+                                        $this->noop();
+                                    }
                                 }
-                            }
 
-                            // saying buh-bye if we're still connected, cause we're done here
+                                // saying buh-bye if we're still connected, cause we're done here
                             if ($this->connected()) {
-                                // issue a rset for all the things we just made the MTA do
-                                $this->rset();
-                                // kiss it goodbye
-                                $this->disconnect();
+                                    // issue a rset for all the things we just made the MTA do
+                                    $this->rset();
+                                    // kiss it goodbye
+                                    $this->disconnect();
+                                }
+
                             }
 
                         }
 
-                    } else {
-
-                        // we didn't get a good response to helo and should be disconnected already
-                        $this->set_domain_results($users, $domain, $this->no_comm_is_valid);
 
                     }
-
-                } catch (SMTP_Validate_Email_Exception_Unexpected_Response $e) {
+                }
+                catch (SMTP_Validate_Email_Exception_No_Connection $e)
+                {
+                    // unable to connect to host, so these addresses are invalid?
+                    $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
+                    $this->set_domain_results($users, $domain, $this->no_conn_is_valid);
+                }
+                catch (SMTP_Validate_Email_Exception_Unexpected_Response $e)
+                {
 
                     // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
                     // decide for themselves if such results are considered valid or not
@@ -397,8 +399,7 @@ class SMTP_Validate_Email {
     * @throws SMTP_Validate_Email_Exception_No_Connection
     * @throws SMTP_Validate_Email_Exception_No_Timeout
     */
-    protected function connect($host) {
-        $remote_socket = $host . ':' . $this->connect_port;
+    protected function connect($remote_socket) {
         $errnum = 0;
         $errstr = '';
         $this->host = $remote_socket;
