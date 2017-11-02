@@ -262,8 +262,8 @@ class SMTP_Validate_Email {
             $this->domains_info[$domain]['users'] = $users;
             $this->domains_info[$domain]['mxs'] = $mxs;
 
-            // try each host
-            while (list($host) = each($mxs)) {
+            // try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
+            foreach ($mxs as $host => $_weight) {
                 // try connecting to the remote host
                 try {
                     $this->connect($host);
