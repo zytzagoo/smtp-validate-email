@@ -1,0 +1,24 @@
+{
+    "name": "zytzagoo/smtp-validate-email",
+    "description": "Perform email address verification via SMTP",
+    "type": "library",
+    "license": "GPL-3.0+",
+    "homepage": "https://github.com/zytzagoo/smtp-validate-email",
+    "support": {
+        "source": "https://github.com/zytzagoo/smtp-validate-email/archive/master.zip",
+        "docs": "https://github.com/zytzagoo/smtp-validate-email/blob/master/README.md",
+        "issues": "https://github.com/zytzagoo/smtp-validate-email/issues"
+    },
+    "authors": [
+        {
+            "name": "Tomaš Trkulja [zytzagoo]",
+            "email": "zyt@zytzagoo.net"
+        }
+    ],
+    "require": {
+        "php": ">=5.0"
+    },
+    "autoload": {
+        "classmap": ["smtp-validate-email.php"]
+    }
+}
