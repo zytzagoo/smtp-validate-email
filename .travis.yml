@@ -23,7 +23,7 @@ before_install:
   - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini{,.disabled} || echo "xdebug not available"
   - composer self-update
 
-install: travis_retry composer install --no-interaction
+install: travis_retry make install
 
 script:
   - find src tests \( -name '*.php' \) -exec php -l {} \;
