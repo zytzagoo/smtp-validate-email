@@ -22,9 +22,22 @@
         }
     ],
     "require": {
-        "php": ">=5.3.1"
+        "php": ">=5.6"
+    },
+    "require-dev": {
+      "dealerdirect/phpcodesniffer-composer-installer": "^0.4.2",
+      "phpunit/phpunit": "~4.8|~5.1",
+      "squizlabs/php_codesniffer": "^3.0",
+      "wimg/php-compatibility": "^8.0"
     },
     "autoload": {
-        "classmap": ["smtp-validate-email.php"]
+      "psr-4": {
+        "SMTPValidateEmail\\": "src"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "SMTPValidateEmail\\Tests\\": "tests"
+      }
     }
 }
