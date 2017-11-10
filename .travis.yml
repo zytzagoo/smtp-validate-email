@@ -1,0 +1,51 @@
+dist: trusty
+language: php
+sudo: false
+
+cache:
+  apt: true
+  directories:
+    - $HOME/.composer/cache/files
+
+php:
+  - 5.6
+  - 7.0
+  - 7.1
+  - 7.2
+  - nightly
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - php: nightly
+
+before_install:
+  - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini{,.disabled} || echo "xdebug not available"
+  - composer self-update
+
+install: travis_retry composer install --no-interaction
+
+script:
+  - find src tests \( -name '*.php' \) -exec php -l {} \;
+  - vendor/bin/phpunit
+
+jobs:
+  allow_failures:
+    - php: nightly
+  include:
+    - stage: Coverage
+      php: 7.1
+      before_script:
+        - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini{.disabled,}
+        - if [[ ! $(php -m | grep -si xdebug) ]]; then echo "xdebug required for coverage"; exit 1; fi
+      script:
+        - ./vendor/bin/phpunit --coverage-clover ./clover.xml
+      after_script:
+        - wget https://scrutinizer-ci.com/ocular.phar
+        - php ocular.phar code-coverage:upload --format=php-clover ./clover.xml
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -f ./clover.xml
+    - stage: CodeStyle
+      php: 7.1
+      script:
+        - ./vendor/bin/phpcs -n

@@ -1,0 +1,41 @@
+filter:
+    paths: ['src/*']
+
+checks:
+    php: true
+
+tools:
+    external_code_coverage: true
+
+build:
+    nodes:
+        analysis:
+            environment:
+                mysql: false
+                postgresql: false
+                redis: false
+                mongodb: false
+                elasticsearch: false
+                memcached: false
+                neo4j: false
+                rabbitmq: false
+                php:
+                    version: 7.1
+            cache:
+                disabled: false
+                directories:
+                    - ~/.composer/cache
+            project_setup:
+                override: true
+            tests:
+                override:
+                    - php-scrutinizer-run
+
+#
+#build_failure_conditions:
+#    - 'elements.rating(<= C).new.exists'                        # No new classes/methods with a rating of C or worse allowed
+#    - 'issues.label("coding-style").new.exists'                 # No new coding style issues allowed
+#    - 'issues.severity(>= MAJOR).new.exists'                    # New issues of major or higher severity
+#    - 'project.metric_change("scrutinizer.test_coverage", < 0)' # Code Coverage decreased from previous inspection
+#    - 'patches.label("Doc Comments").new.exists'                # No new doc comments patches allowed
+#    - 'patches.label("Unused Use Statements").new.exists'       # No new unused imports patches allowed

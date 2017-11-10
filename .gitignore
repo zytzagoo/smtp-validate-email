@@ -1,4 +1,8 @@
 nbproject
+phpunit.xml
 tests.php
 composer.lock
 vendor/
+node_modules/
+/.phpcs.cache
+/coverage/
