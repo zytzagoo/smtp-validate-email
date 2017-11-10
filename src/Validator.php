@@ -773,7 +773,7 @@ class Validator
     /**
      * Receives lines from the remote host and looks for expected response codes.
      *
-     * @param int|int[] $codes List of one or more expected response codes
+     * @param int|int[]|string $codes List of one or more expected response codes
      * @param int $timeout The timeout for this individual command, if any
      * @param bool $empty_response_allowed When true, empty responses are allowed
      *
@@ -1072,7 +1072,7 @@ class Validator
     /**
      * Get current state of "catch-all" validity flag.
      *
-     * @return void
+     * @return bool
      */
     public function getCatchAllValidity()
     {
