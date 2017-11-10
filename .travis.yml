@@ -27,7 +27,7 @@ install: travis_retry composer install --no-interaction
 
 script:
   - find src tests \( -name '*.php' \) -exec php -l {} \;
-  - vendor/bin/phpunit
+  - make coverage
 
 jobs:
   allow_failures:
@@ -39,10 +39,10 @@ jobs:
         - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini{.disabled,}
         - if [[ ! $(php -m | grep -si xdebug) ]]; then echo "xdebug required for coverage"; exit 1; fi
       script:
-        - ./vendor/bin/phpunit --coverage-clover ./clover.xml
+        - make coverage
       after_script:
         - wget https://scrutinizer-ci.com/ocular.phar
-        - php ocular.phar code-coverage:upload --format=php-clover ./clover.xml
+        - php ocular.phar code-coverage:upload --format=php-clover ./coverage/clover.xml
       after_success:
         - bash <(curl -s https://codecov.io/bash) -f ./clover.xml
     - stage: CodeStyle
