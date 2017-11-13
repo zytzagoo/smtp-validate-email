@@ -11,3 +11,5 @@
 /phpunit.xml export-ignore
 /phpunit.xml.dist export-ignore
 /tests export-ignore
+/Makefile export-ignore
+/package.json export-ignore
