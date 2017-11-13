@@ -31,6 +31,8 @@ Install via [composer](https://getcomposer.org/):
 
 ### Basic example
 ```php
+<?php
+
 require 'vendor/autoload.php';
 
 use SMTPValidateEmail\Validator as SmtpEmailValidator;
@@ -56,6 +58,8 @@ var_dump($log);
 ### Multiple recipients and other details
 
 ```php
+<?php
+
 require 'vendor/autoload.php';
 
 use SMTPValidateEmail\Validator as SmtpEmailValidator;
@@ -102,6 +106,8 @@ Require the composer package:
 And then in your code:
 
 ```php
+<?php
+
 require 'vendor/autoload.php';
 
 use SMTPValidateEmail\Validator as SMTP_Validate_Email;
@@ -136,8 +142,7 @@ If `smtp-sink` is unavailable, tests requiring it are marked as skipped.
 
 Pull requests are welcome!
 
-In order to get your pull-request merged,
-please follow these simple rules:
+In order to get your pull-request merged, please follow these simple rules:
 
 * all code submissions must pass cleanly (no errors) with `make test`
 * stick to existing code style (`phpcs` is used)
