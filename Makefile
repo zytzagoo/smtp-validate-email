@@ -37,31 +37,7 @@ $(PIDFILE): ## Starts the smtp-sink server
 server-start: server-stop $(PIDFILE) ## Stops and starts the smtp-sink server
 
 server-stop: ## Stops smtp-sink server if it's running
-	if [ -e $(PIDFILE) ]; then \
-		PID=$$(cat $(PIDFILE)); \
-		# Getting smtp-sink's pid by matching second column (ppid) of ps output clumsily \
-		NODEPID=$$(ps xao pid,ppid,pgid,sid,comm | awk -v pid="$$PID" '$$2==pid{print $$1}'); \
-		#PGID=$$(ps xao pid,ppid,pgid,sid,comm -p $$PID | sed '1d' | awk '{print $$3}'); \
-		#MYPPID=$$(ps xao pid,ppid,pgid,sid,comm -p $$PID | sed '1d' | awk '{print $$2}'); \
-		echo PID=$$PID; \
-		echo NODEPID=$$NODEPID; \
-		#echo PGID=$$PGID; \
-		#echo PPID=$$PPID; \
-		#echo MYPPID=$$MYPPID; \
-		# Killing nodejs pid that we spawned (hopefully) \
-		if [ ! -z "$$NODEPID" ]; then \
-			kill $$NODEPID || true; \
-		fi; \
-		# Killing juts the PID is not enough sometimes, nodejs server still lingers on (at least on Windows) \
-		if [ ! -z "$$PID" ]; then \
-			kill $$PID || true; \
-		fi; \
-# TODO/FIXME: this manages to kill too much or something, whole recipe fails :/ \
-#		if [ ! -z "$$PGID" ]; then \
-#			kill -- -$$PGID || true; \
-#		fi; \
-		rm -rf $(PIDFILE) || true; \
-	fi; \
+	./scripts/stop-server.sh $(PIDFILE)
 
 clean: ## Removes installed dev dependencies
 	rm -rf ./vendor

@@ -1,6 +1,6 @@
 {
   "private": true,
-  "devDependencies":{
-    "smtp-sink":"0.0.3"
+  "devDependencies": {
+    "smtp-sink": "0.0.3"
   }
 }
