@@ -150,7 +150,7 @@ class Validator
     /**
      * Holds the socket connection resource
      *
-     * @var resource
+     * @var resource|false
      */
     private $socket;
 
@@ -269,7 +269,7 @@ class Validator
             $this->setSender($sender);
         }
 
-        if (!is_array($this->domains) || empty($this->domains)) {
+        if (empty($this->domains)) {
             return $this->results;
         }
 
