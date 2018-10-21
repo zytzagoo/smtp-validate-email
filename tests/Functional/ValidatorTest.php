@@ -123,4 +123,35 @@ class ValidatorTest extends TestCase
         $results = $inst->validate();
         $this->assertFalse($results[$email]);
     }
+
+    public function testRandomDomainWithNoMxRecords()
+    {
+        $uniq    = uniqid();
+        $host    = $uniq . '.com';
+        $email   = 'test@' . $uniq . '.' . $host;
+
+        // Default no_conn_is_valid should be false
+        $inst = new Validator($email, 'hello@localhost');
+        $this->assertFalse($inst->no_conn_is_valid);
+        $results = $inst->validate();
+        $this->assertFalse($results[$email]);
+
+        $log       = $inst->getLog();
+        $last_line = \array_pop($log);
+        $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
+        $this->assertContains($needle, $last_line);
+    }
+
+    public function testIssue35()
+    {
+        $email   = 'blabla@blablabla.bla';
+        $inst    = new Validator($email, 'hello@localhost');
+        $results = $inst->validate();
+        $this->assertFalse($results[$email]);
+
+        $log       = $inst->getLog();
+        $last_line = \array_pop($log);
+        $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
+        $this->assertContains($needle, $last_line);
+    }
 }
