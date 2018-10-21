@@ -39,6 +39,12 @@
     <rule ref="Generic.NamingConventions.UpperCaseConstantName"/>
     <rule ref="Generic.PHP.DeprecatedFunctions"/>
     <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array"
+                value="create_function=>null,ob_end_flush=>null,sizeof=>count,delete=>unset,isnull=>null" />
+        </properties>
+    </rule>
     <rule ref="Generic.PHP.LowerCaseConstant"/>
     <rule ref="Generic.PHP.NoSilencedErrors"/>
     <rule ref="Generic.PHP.Syntax"/>
@@ -70,7 +76,6 @@
     </rule>
     <rule ref="Squiz.PHP.EmbeddedPhp"/>
     <rule ref="Squiz.PHP.Eval"/>
-    <rule ref="Squiz.PHP.ForbiddenFunctions"/>
     <rule ref="Squiz.PHP.InnerFunctions"/>
     <rule ref="Squiz.PHP.LowercasePHPFunctions"/>
     <rule ref="Squiz.PHP.NonExecutableCode"/>

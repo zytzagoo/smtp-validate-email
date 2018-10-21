@@ -70,9 +70,9 @@ class Validator
      */
     public $greylisted_considered_valid = true;
 
-     /**
-     * stream context arguments for connection socket, necessary to initiate Server IP (in case reverse IP)
-     * https://stackoverflow.com/a/8968016
+    /**
+     * Stream context arguments for connection socket, necessary to initiate
+     * Server IP (in case reverse IP), see: https://stackoverflow.com/a/8968016
      */
     public $stream_context_args = [];
 

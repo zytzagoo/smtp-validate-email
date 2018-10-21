@@ -126,9 +126,9 @@ class ValidatorTest extends TestCase
 
     public function testRandomDomainWithNoMxRecords()
     {
-        $uniq    = uniqid();
-        $host    = $uniq . '.com';
-        $email   = 'test@' . $uniq . '.' . $host;
+        $uniq  = uniqid();
+        $host  = $uniq . '.com';
+        $email = 'test@' . $uniq . '.' . $host;
 
         // Default no_conn_is_valid should be false
         $inst = new Validator($email, 'hello@localhost');
