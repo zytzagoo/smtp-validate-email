@@ -75,7 +75,7 @@ class Validator
      * https://stackoverflow.com/a/8968016
      */
     public $stream_context_args = [];
-    
+
     /**
      * Timeout values for various commands (in seconds) per RFC 2821
      *
@@ -150,7 +150,7 @@ class Validator
     /**
      * Holds the socket connection resource
      *
-     * @var resource|false
+     * @var resource
      */
     private $socket;
 
