@@ -1,4 +1,32 @@
-PIDFILE=/tmp/smtp-sink.pid
+PIDFILE=/tmp/mailhog.pid
+MAILHOG=./bin/mailhog
+
+lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst J,j,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst S,s,$(subst T,t,$(subst U,u,$(subst V,v,$(subst W,w,$(subst X,x,$(subst Y,y,$(subst Z,z,$1))))))))))))))))))))))))))
+
+ifeq '$(findstring ;,$(PATH))' ';'
+    #UNAME := Windows
+    UNAME := $(shell uname 2>NUL || echo Windows)
+else
+    UNAME := $(shell uname 2>/dev/null || echo Unknown)
+    UNAME := $(patsubst CYGWIN%,Cygwin,$(UNAME))
+    UNAME := $(patsubst MSYS%,MSYS,$(UNAME))
+    UNAME := $(patsubst MINGW%,MSYS,$(UNAME))
+endif
+UNAME := $(call lc,$(UNAME))
+
+PLAT=386
+uname_P := $(shell sh -c 'uname -p 2>/dev/null || echo not')
+ifeq ($(UNAME_P),x86_64)
+	PLAT := amd64
+endif
+ifneq ($(filter %86,$(UNAME_P)),)
+	PLAT := 386
+endif
+ifneq ($(filter arm%,$(UNAME_P)),)
+	PLAT := arm
+endif
+
+MAILHOG_URL=https://github.com/mailhog/MailHog/releases/download/v1.0.0/MailHog_$(UNAME)_$(PLAT)
 
 help: ## What you're currently reading
 	@IFS=$$'\n' ; \
@@ -21,7 +49,11 @@ help: ## What you're currently reading
 
 install: ## Installs dev dependencies
 	composer install
-	npm install
+	make $(MAILHOG)
+
+clean: ## Removes installed dev dependencies
+	rm -rf ./vendor
+	rm -rf $(MAILHOG)
 
 test: server-start ## Runs tests
 	"./vendor/bin/phpunit" --no-coverage
@@ -31,16 +63,17 @@ coverage: server-start ## Runs tests with code coverage
 	"./vendor/bin/phpunit" --coverage-html=./coverage/ --coverage-clover=./coverage/clover.xml
 	make server-stop
 
-$(PIDFILE): ## Starts the smtp-sink server
-	./node_modules/.bin/smtp-sink -w allowed-sender@example.org & echo $$! > $@
+server-start: server-stop $(PIDFILE) ## Stops and starts the smtp server
 
-server-start: server-stop $(PIDFILE) ## Stops and starts the smtp-sink server
+server-stop: ## Stops smtp server if it's running
+	./bin/stop-server.sh $(PIDFILE)
 
-server-stop: ## Stops smtp-sink server if it's running
-	./scripts/stop-server.sh $(PIDFILE)
+$(PIDFILE): ## Starts the smtp server
+	$(MAILHOG) & echo $$! > $@
 
-clean: ## Removes installed dev dependencies
-	rm -rf ./vendor
-	rm -rf ./node_modules
+$(MAILHOG): ## Downloads platform-specific mailhog binary
+#	@echo $(MAILHOG_URL)
+	wget $(MAILHOG_URL) -O $@
+	chmod +x $(MAILHOG)
 
 .PHONY: help install test clean coverage server-start server-stop

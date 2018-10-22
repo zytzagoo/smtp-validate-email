@@ -116,7 +116,7 @@ use SMTPValidateEmail\Validator as SMTP_Validate_Email;
 ```
 
 ## Development & Contributions
-See the [Makefile](Makefile) and the development dependencies in [composer.json](composer.json) and [package.json](package.json).
+See the [Makefile](Makefile) and the development dependencies in [composer.json](composer.json).
 
 Running `make` once you clone (or download) the repository gives you:
 
@@ -127,18 +127,19 @@ Usage: make [target]
 --------                       ----
 help                           What you're currently reading
 install                        Installs dev dependencies
+clean                          Removes installed dev dependencies
 test                           Runs tests
 coverage                       Runs tests with code coverage
-$(PIDFILE)                     Starts the smtp-sink server
-server-start                   Stops and starts the smtp-sink server
-server-stop                    Stops smtp-sink server if it's running
-clean                          Removes installed dev dependencies
+server-start                   Stops and starts the smtp server
+server-stop                    Stops smtp server if it's running
+(PIDFILE)                      Starts the smtp server
+(MAILHOG)                      Downloads platform-specific mailhog binary
 ```
 
 So, run `make install` to get started. Afterwards you should be able to run the tests.
 
-Tests are powered by `phpunit` and a local `smtp-sink` instance running on port 1025.
-If `smtp-sink` is unavailable, tests requiring it are marked as skipped.
+Tests are powered by `phpunit` and a local `./bin/mailhog` instance running on port 1025.
+If and SMTP server is unavailable, tests requiring it are marked as skipped.
 
 Pull requests are welcome!
 
