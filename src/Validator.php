@@ -252,6 +252,53 @@ class Validator
     }
 
     /**
+     * @param string $domain
+     * @return array
+     */
+    protected function buildMxs($domain)
+    {
+        $mxs = [];
+
+        // Query the MX records for the current domain
+        list($hosts, $weights) = $this->mxQuery($domain);
+
+        // Sort out the MX priorities
+        foreach ($hosts as $k => $host) {
+            $mxs[$host] = $weights[$k];
+        }
+        asort($mxs);
+
+        // Add the hostname itself with 0 weight (RFC 2821)
+        $mxs[$domain] = 0;
+
+        return $mxs;
+    }
+
+    /**
+     * @param array $mxs
+     * @param string $domain
+     * @param string $users
+     * @return void
+     */
+    protected function attemptConnection(array $mxs, $domain, $users)
+    {
+        // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
+        foreach ($mxs as $host => $_weight) {
+            // try connecting to the remote host
+            try {
+                $this->connect($host);
+                if ($this->connected()) {
+                    break;
+                }
+            } catch (NoConnectionException $e) {
+                // Unable to connect to host, so these addresses are invalid?
+                $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
+                //$this->setDomainResults($users, $domain, $this->no_conn_is_valid);
+            }
+        }
+    }
+
+    /**
      * Performs validation of specified email addresses.
      *
      * @param array|string $emails Emails to validate (or a single one as a string)
@@ -273,109 +320,98 @@ class Validator
             return $this->results;
         }
 
+        $this->loop();
+
+        return $this->getResults();
+    }
+
+    /**
+     * @return void
+     */
+    protected function loop()
+    {
         // Query the MTAs on each domain if we have them
         foreach ($this->domains as $domain => $users) {
-            $mxs = [];
-
-            // Query the MX records for the current domain
-            list($hosts, $weights) = $this->mxQuery($domain);
-
-            // Sort out the MX priorities
-            foreach ($hosts as $k => $host) {
-                $mxs[$host] = $weights[$k];
-            }
-            asort($mxs);
-
-            // Add the hostname itself with 0 weight (RFC 2821)
-            $mxs[$domain] = 0;
+            $mxs = $this->buildMxs($domain);
 
             $this->debug('MX records (' . $domain . '): ' . print_r($mxs, true));
             $this->domains_info[$domain]          = [];
             $this->domains_info[$domain]['users'] = $users;
             $this->domains_info[$domain]['mxs']   = $mxs;
 
-            // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
-            foreach ($mxs as $host => $_weight) {
-                // try connecting to the remote host
-                try {
-                    $this->connect($host);
-                    if ($this->connected()) {
-                        break;
-                    }
-                } catch (NoConnectionException $e) {
-                    // Unable to connect to host, so these addresses are invalid?
-                    $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
-                    $this->setDomainResults($users, $domain, $this->no_conn_is_valid);
-                }
-            }
+            // Set default results as though we can't communicate at all...
+            $this->setDomainResults($users, $domain, $this->no_conn_is_valid);
+            $this->attemptConnection($mxs, $domain, $users);
+            $this->performSmtpDance($domain, $users);
+        }
+    }
 
-            // Are we connected?
-            if ($this->connected()) {
-                try {
-                    // Say helo, and continue if we can talk
-                    if ($this->helo()) {
-                        // try issuing MAIL FROM
-                        if (!$this->mail($this->from_user . '@' . $this->from_domain)) {
-                            // MAIL FROM not accepted, we can't talk
-                            $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
-                        }
-
-                        /**
-                         * If we're still connected, proceed (cause we might get
-                         * disconnected, or banned, or greylisted temporarily etc.)
-                         * see mail() for more
-                         */
-                        if ($this->connected()) {
-                            $this->noop();
-
-                            // Attempt a catch-all test for the domain (if configured to do so)
-                            $is_catchall_domain = $this->acceptsAnyRecipient($domain);
-
-                            // If a catchall domain is detected, and we consider
-                            // accounts on such domains as invalid, mark all the
-                            // users as invalid and move on
-                            if ($is_catchall_domain) {
-                                if (!$this->catchall_is_valid) {
-                                    $this->setDomainResults($users, $domain, $this->catchall_is_valid);
-                                    continue;
-                                }
-                            }
-
-                            // If we're still connected, try issuing rcpts
-                            if ($this->connected()) {
-                                $this->noop();
-                                // RCPT for each user
-                                foreach ($users as $user) {
-                                    $address                 = $user . '@' . $domain;
-                                    $this->results[$address] = $this->rcpt($address);
-                                    $this->noop();
-                                }
-                            }
-
-                            // Saying bye-bye if we're still connected, cause we're done here
-                            if ($this->connected()) {
-                                // Issue a RSET for all the things we just made the MTA do
-                                $this->rset();
-                                $this->disconnect();
-                            }
-                        }
-                    } else {
-                        // We didn't get a good response to helo and should be disconnected already
+    protected function performSmtpDance($domain, array $users)
+    {
+        // Are we connected?
+        if ($this->connected()) {
+            try {
+                // Say helo, and continue if we can talk
+                if ($this->helo()) {
+                    // try issuing MAIL FROM
+                    if (!$this->mail($this->from_user . '@' . $this->from_domain)) {
+                        // MAIL FROM not accepted, we can't talk
                         $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
                     }
-                } catch (UnexpectedResponseException $e) {
-                    // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
-                    // decide for themselves if such results are considered valid or not
-                    $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
-                } catch (TimeoutException $e) {
-                    // A timeout is a comm failure, so treat the results on that domain
-                    // according to $this->no_comm_is_valid as well
-                    $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
-                }
-            }
-        } // outermost foreach
 
-        return $this->getResults();
+                    /**
+                     * If we're still connected, proceed (cause we might get
+                     * disconnected, or banned, or greylisted temporarily etc.)
+                     * see mail() for more
+                     */
+                    if ($this->connected()) {
+                        $this->noop();
+
+                        // Attempt a catch-all test for the domain (if configured to do so)
+                        $is_catchall_domain = $this->acceptsAnyRecipient($domain);
+
+                        // If a catchall domain is detected, and we consider
+                        // accounts on such domains as invalid, mark all the
+                        // users as invalid and move on
+                        if ($is_catchall_domain) {
+                            if (!$this->catchall_is_valid) {
+                                $this->setDomainResults($users, $domain, $this->catchall_is_valid);
+                                return;
+                            }
+                        }
+
+                        // If we're still connected, try issuing rcpts
+                        if ($this->connected()) {
+                            $this->noop();
+                            // RCPT for each user
+                            foreach ($users as $user) {
+                                $address                 = $user . '@' . $domain;
+                                $this->results[$address] = $this->rcpt($address);
+                                $this->noop();
+                            }
+                        }
+
+                        // Saying bye-bye if we're still connected, cause we're done here
+                        if ($this->connected()) {
+                            // Issue a RSET for all the things we just made the MTA do
+                            $this->rset();
+                            $this->disconnect();
+                        }
+                    }
+                } else {
+                    // We didn't get a good response to helo and should be disconnected already
+                    //$this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+                }
+            } catch (UnexpectedResponseException $e) {
+                // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
+                // decide for themselves if such results are considered valid or not
+                $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+            } catch (TimeoutException $e) {
+                // A timeout is a comm failure, so treat the results on that domain
+                // according to $this->no_comm_is_valid as well
+                $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+            }
+        }
     }
 
     /**

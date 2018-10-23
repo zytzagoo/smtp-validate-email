@@ -18,7 +18,7 @@ class ValidatorTest extends TestCase
         $email   = 'test@' . $uniq . '.' . $host;
         $timeout = 1;
 
-        // Default should be false
+        // Default should be false, and there's no smtp on localhost:25
         $inst = new Validator($email, 'sender@localhost');
         $inst->setConnectTimeout($timeout);
         $this->assertFalse($inst->no_conn_is_valid);
@@ -47,9 +47,8 @@ class ValidatorTest extends TestCase
             $this->markTestSkipped('SMTP server not running.');
         }
 
-        // Re-configure mailhog to reject any sender we give it,
-        // which is what we want here.
-        $this->enableJim();
+        // Re-configure mailhog to reject any sender we give it.
+        $this->enableJimRejectingSenders();
 
         $email  = 'test@localhost';
         $sender = 'not-allowed@example.org';
@@ -66,7 +65,7 @@ class ValidatorTest extends TestCase
         $this->assertTrue($results[$email]);
 
         // Turns off smtp server re-configuration done at the beginning...
-        $this->disableJim();
+        $this->restoreSavedJimConfigOrTurnOffJim();
     }
 
     public function testValidSenderWithLocalSmtp()
@@ -156,5 +155,30 @@ class ValidatorTest extends TestCase
         $last_line = \array_pop($log);
         $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
         $this->assertContains($needle, $last_line);
+    }
+
+    /**
+     * @expectedException SMTPValidateEmail\Exceptions\NoConnection
+     */
+    public function testRejectedConnection()
+    {
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
+        }
+
+        $this->makeSmtpRejectConnections();
+
+        $test = function() {
+            $email = 'chaos@localhost';
+            $inst  = new Validator($email, 'alice@localhost');
+            $inst->setConnectTimeout(1);
+            $inst->setConnectPort(1025);
+            $results = $inst->validate();
+        };
+
+        $test();
+
+        // Turns off smtp server re-configuration done at the beginning...
+        $this->restoreSavedJimConfigOrTurnOffJim();
     }
 }
