@@ -4,7 +4,6 @@ namespace SMTPValidateEmail\Tests\Functional;
 
 use SMTPValidateEmail\Validator;
 use SMTPValidateEmail\Tests\TestCase;
-use SMTPValidateEmail\Tests\SmtpSinkServerProcess;
 
 /**
  * Functional tests for Validator class.
@@ -39,19 +38,23 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * Requires having node-smtp-sink (`npm install smtp-sink`) locally.
-     * It needs to be ran with -w switch: `smtp-sink -w allowed-sender@example.org`
+     * Requires having the smtp-server running locally, configured to
+     * reject any sender or only allow a certain sender (not much difference really).
      */
-    public function testNoCommIsValidWithLocalSmtpSinkWhitelisted()
+    public function testNoCommIsValidWithLocalSmtpRejectingOurSender()
     {
-        // Mark skipped if smtp-sink is not running
-        if (!$this->isSmtpSinkRunning()) {
-            $this->markTestSkipped('smtp-sink is not running.');
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('SMTP server not running.');
         }
 
-        $email = 'test@localhost';
+        // Re-configure mailhog to reject any sender we give it,
+        // which is what we want here.
+        $this->enableJim();
 
-        $inst = new Validator($email, 'not-allowed@example.org');
+        $email  = 'test@localhost';
+        $sender = 'not-allowed@example.org';
+
+        $inst = new Validator($email, $sender);
         $inst->setConnectPort(1025);
         $inst->setConnectTimeout(1);
         $this->assertFalse($inst->no_comm_is_valid);
@@ -59,15 +62,17 @@ class ValidatorTest extends TestCase
         $this->assertFalse($results[$email]);
 
         $inst->no_comm_is_valid = true;
-        $results                = $inst->validate($email, 'not-allowed@example.org');
+        $results                = $inst->validate($email, $sender);
         $this->assertTrue($results[$email]);
+
+        // Turns off smtp server re-configuration done at the beginning...
+        $this->disableJim();
     }
 
-    public function testValidSenderWithLocalSmtpSinkWhitelisted()
+    public function testValidSenderWithLocalSmtp()
     {
-        // Mark skipped if smtp-sink is not running
-        if (!$this->isSmtpSinkRunning()) {
-            $this->markTestSkipped('smtp-sink is not running.');
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
         }
 
         $email = 'test@localhost';
@@ -82,9 +87,8 @@ class ValidatorTest extends TestCase
 
     public function testCatchAllConsideredValid()
     {
-        // Mark skipped if smtp-sink is not running
-        if (!$this->isSmtpSinkRunning()) {
-            $this->markTestSkipped('smtp-sink is not running.');
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
         }
 
         $emails = [
@@ -105,9 +109,8 @@ class ValidatorTest extends TestCase
 
     public function testCatchAllConsideredInvalid()
     {
-        // Mark skipped if smtp-sink is not running
-        if (!$this->isSmtpSinkRunning()) {
-            $this->markTestSkipped('smtp-sink is not running.');
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
         }
 
         $email = 'test@localhost';
