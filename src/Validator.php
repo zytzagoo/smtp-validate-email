@@ -294,7 +294,7 @@ class Validator
 
             // Set default results as though we can't communicate at all...
             $this->setDomainResults($users, $domain, $this->no_conn_is_valid);
-            $this->attemptConnection($mxs, $domain, $users);
+            $this->attemptConnection($mxs);
             $this->performSmtpDance($domain, $users);
         }
     }
