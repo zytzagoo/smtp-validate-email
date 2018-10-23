@@ -252,53 +252,6 @@ class Validator
     }
 
     /**
-     * @param string $domain
-     * @return array
-     */
-    protected function buildMxs($domain)
-    {
-        $mxs = [];
-
-        // Query the MX records for the current domain
-        list($hosts, $weights) = $this->mxQuery($domain);
-
-        // Sort out the MX priorities
-        foreach ($hosts as $k => $host) {
-            $mxs[$host] = $weights[$k];
-        }
-        asort($mxs);
-
-        // Add the hostname itself with 0 weight (RFC 2821)
-        $mxs[$domain] = 0;
-
-        return $mxs;
-    }
-
-    /**
-     * @param array $mxs
-     * @param string $domain
-     * @param string $users
-     * @return void
-     */
-    protected function attemptConnection(array $mxs, $domain, $users)
-    {
-        // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
-        foreach ($mxs as $host => $_weight) {
-            // try connecting to the remote host
-            try {
-                $this->connect($host);
-                if ($this->connected()) {
-                    break;
-                }
-            } catch (NoConnectionException $e) {
-                // Unable to connect to host, so these addresses are invalid?
-                $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
-                //$this->setDomainResults($users, $domain, $this->no_conn_is_valid);
-            }
-        }
-    }
-
-    /**
      * Performs validation of specified email addresses.
      *
      * @param array|string $emails Emails to validate (or a single one as a string)
@@ -343,6 +296,51 @@ class Validator
             $this->setDomainResults($users, $domain, $this->no_conn_is_valid);
             $this->attemptConnection($mxs, $domain, $users);
             $this->performSmtpDance($domain, $users);
+        }
+    }
+
+    /**
+     * @param string $domain
+     * @return array
+     */
+    protected function buildMxs($domain)
+    {
+        $mxs = [];
+
+        // Query the MX records for the current domain
+        list($hosts, $weights) = $this->mxQuery($domain);
+
+        // Sort out the MX priorities
+        foreach ($hosts as $k => $host) {
+            $mxs[$host] = $weights[$k];
+        }
+        asort($mxs);
+
+        // Add the hostname itself with 0 weight (RFC 2821)
+        $mxs[$domain] = 0;
+
+        return $mxs;
+    }
+
+    /**
+     * @param array $mxs
+     * @return void
+     */
+    protected function attemptConnection(array $mxs)
+    {
+        // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
+        foreach ($mxs as $host => $_weight) {
+            // try connecting to the remote host
+            try {
+                $this->connect($host);
+                if ($this->connected()) {
+                    break;
+                }
+            } catch (NoConnectionException $e) {
+                // Unable to connect to host, so these addresses are invalid?
+                $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
+                //$this->setDomainResults($users, $domain, $this->no_conn_is_valid);
+            }
         }
     }
 
@@ -398,9 +396,6 @@ class Validator
                             $this->disconnect();
                         }
                     }
-                } else {
-                    // We didn't get a good response to helo and should be disconnected already
-                    //$this->setDomainResults($users, $domain, $this->no_comm_is_valid);
                 }
             } catch (UnexpectedResponseException $e) {
                 // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can

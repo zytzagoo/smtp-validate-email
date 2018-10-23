@@ -168,7 +168,7 @@ class ValidatorTest extends TestCase
 
         $this->makeSmtpRejectConnections();
 
-        $test = function() {
+        $test = function () {
             $email = 'chaos@localhost';
             $inst  = new Validator($email, 'alice@localhost');
             $inst->setConnectTimeout(1);
