@@ -216,13 +216,31 @@ class Validator
     }
 
     /**
-     * Disconnects from the SMTP server if needed to release resources
+     * Disconnects from the SMTP server if needed to release resources.
+     *
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     public function __destruct()
     {
         $this->disconnect(false);
     }
 
+    /**
+     * Does a catch-all test for the given domain.
+     *
+     * @param string $domain
+     *
+     * @return bool Whether the MTA accepts any random recipient.
+     *
+     * @throws NoConnectionException
+     * @throws NoMailFromException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
+     */
     public function acceptsAnyRecipient($domain)
     {
         if (!$this->catchall_test) {
@@ -254,9 +272,16 @@ class Validator
     /**
      * Performs validation of specified email addresses.
      *
-     * @param array|string $emails Emails to validate (or a single one as a string)
-     * @param string|null $sender Sender email address
-     * @return array List of emails and their results
+     * @param array|string $emails Emails to validate (or a single one as a string).
+     * @param string|null $sender Sender email address.
+     *
+     * @return array List of emails and their results.
+     *
+     * @throws NoConnectionException
+     * @throws NoHeloException
+     * @throws NoMailFromException
+     * @throws NoTimeoutException
+     * @throws SendFailedException
      */
     public function validate($emails = [], $sender = null)
     {
@@ -279,7 +304,11 @@ class Validator
     }
 
     /**
-     * @return void
+     * @throws NoConnectionException
+     * @throws NoHeloException
+     * @throws NoMailFromException
+     * @throws NoTimeoutException
+     * @throws SendFailedException
      */
     protected function loop()
     {
@@ -324,13 +353,13 @@ class Validator
 
     /**
      * @param array $mxs
-     * @return void
+     *
+     * @throws NoTimeoutException
      */
     protected function attemptConnection(array $mxs)
     {
         // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
         foreach ($mxs as $host => $_weight) {
-            // try connecting to the remote host
             try {
                 $this->connect($host);
                 if ($this->connected()) {
@@ -339,11 +368,19 @@ class Validator
             } catch (NoConnectionException $e) {
                 // Unable to connect to host, so these addresses are invalid?
                 $this->debug('Unable to connect. Exception caught: ' . $e->getMessage());
-                //$this->setDomainResults($users, $domain, $this->no_conn_is_valid);
             }
         }
     }
 
+    /**
+     * @param string $domain
+     * @param array $users
+     *
+     * @throws NoConnectionException
+     * @throws NoHeloException
+     * @throws NoMailFromException
+     * @throws SendFailedException
+     */
     protected function performSmtpDance($domain, array $users)
     {
         // Bail early if not connected for whatever reason...
@@ -365,7 +402,15 @@ class Validator
     }
 
     /**
-     * @return void
+     * @param string $domain
+     * @param array $users
+     *
+     * @throws NoConnectionException
+     * @throws NoHeloException
+     * @throws NoMailFromException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function attemptMailCommands($domain, array $users)
     {
@@ -511,9 +556,12 @@ class Validator
     /**
      * Disconnects the currently connected MTA.
      *
-     * @param bool $quit Whether to send QUIT command before closing the socket on our end
+     * @param bool $quit Whether to send QUIT command before closing the socket on our end.
      *
-     * @return void
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function disconnect($quit = true)
     {
@@ -532,8 +580,6 @@ class Validator
 
     /**
      * Resets internal state flags to defaults
-     *
-     * @return void
      */
     private function resetState()
     {
@@ -545,9 +591,12 @@ class Validator
     /**
      * Sends a HELO/EHLO sequence.
      *
-     * @todo Implement TLS
-     *
      * @return bool|null True if successful, false otherwise. Null if already done.
+     *
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function helo()
     {
@@ -556,7 +605,6 @@ class Validator
             return null;
         }
 
-        $result = false;
         try {
             $this->expect(self::SMTP_CONNECT_SUCCESS, $this->command_timeouts['helo']);
             $this->ehlo();
@@ -592,7 +640,10 @@ class Validator
     /**
      * Sends `EHLO` or `HELO`, depending on what's supported by the remote host.
      *
-     * @return void
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function ehlo()
     {
@@ -610,11 +661,15 @@ class Validator
     /**
      * Sends a `MAIL FROM` command which indicates the sender.
      *
-     * @param string $from The "From:" address
+     * @param string $from
      *
+     * @return bool Whether the command was accepted or not.
+     *
+     * @throws NoConnectionException
      * @throws NoHeloException
-     *
-     * @return bool Whether the command was accepted or not
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function mail($from)
     {
@@ -648,12 +703,14 @@ class Validator
     }
 
     /**
-     * Sends a RCPT TO command to indicate a recipient.
+     * Sends a RCPT TO command to indicate a recipient. Returns whether the
+     * recipient was accepted or not.
      *
-     * @param string $to Recipient's email address
+     * @param string $to Recipient (email address).
+     *
+     * @return bool Whether the address was accepted or not.
+     *
      * @throws NoMailFromException
-     *
-     * @return bool Whether the recipient was accepted or not
      */
     protected function rcpt($to)
     {
@@ -693,7 +750,10 @@ class Validator
     /**
      * Sends a RSET command and resets certain parts of internal state.
      *
-     * @return void
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function rset()
     {
@@ -715,7 +775,10 @@ class Validator
     /**
      * Sends a QUIT command.
      *
-     * @return void
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function quit()
     {
@@ -733,7 +796,10 @@ class Validator
     /**
      * Sends a NOOP command.
      *
-     * @return void
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
+     * @throws UnexpectedResponseException
      */
     protected function noop()
     {
@@ -757,9 +823,10 @@ class Validator
     /**
      * Sends a command to the remote host.
      *
-     * @param string $cmd The command to send
+     * @param string $cmd The command to send.
      *
-     * @return int|bool Number of bytes written to the stream
+     * @return int|bool Number of bytes written to the stream.
+     *
      * @throws NoConnectionException
      * @throws SendFailedException
      */
@@ -783,9 +850,9 @@ class Validator
     /**
      * Receives a response line from the remote host.
      *
-     * @param int $timeout Timeout in seconds
+     * @param int $timeout Timeout in seconds.
      *
-     * @return string
+     * @return string Response line from the remote host.
      *
      * @throws NoConnectionException
      * @throws TimeoutException
@@ -820,14 +887,15 @@ class Validator
     }
 
     /**
-     * Receives lines from the remote host and looks for expected response codes.
+     * @param int|int[]|array|string $codes List of one or more expected response codes.
+     * @param int|null $timeout The timeout for this individual command, if any.
+     * @param bool $empty_response_allowed When true, empty responses are allowed.
      *
-     * @param int|int[]|array|string $codes List of one or more expected response codes
-     * @param int $timeout The timeout for this individual command, if any
-     * @param bool $empty_response_allowed When true, empty responses are allowed
+     * @return string The last text message received.
      *
-     * @return string The last text message received
-     *
+     * @throws NoConnectionException
+     * @throws SendFailedException
+     * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
     protected function expect($codes, $timeout = null, $empty_response_allowed = false)
@@ -868,7 +936,7 @@ class Validator
      * Splits the email address string into its respective user and domain parts
      * and returns those as an array.
      *
-     * @param string $email Email address
+     * @param string $email Email address.
      *
      * @return array ['user', 'domain']
      */
@@ -885,8 +953,6 @@ class Validator
      * Sets the email addresses that should be validated.
      *
      * @param array|string $emails List of email addresses (or a single one a string).
-     *
-     * @return void
      */
     public function setEmails($emails)
     {
@@ -909,8 +975,6 @@ class Validator
      * Sets the email address to use as the sender/validator.
      *
      * @param string $email
-     *
-     * @return void
      */
     public function setSender($email)
     {
@@ -922,8 +986,9 @@ class Validator
     /**
      * Queries the DNS server for MX entries of a certain domain.
      *
-     * @param string $domain The domain for which to retrieve MX records
-     * @return array MX hosts and their weights
+     * @param string $domain The domain for which to retrieve MX records.
+     *
+     * @return array MX hosts and their weights.
      */
     protected function mxQuery($domain)
     {
@@ -937,7 +1002,6 @@ class Validator
     /**
      * Throws if not currently connected.
      *
-     * @return void
      * @throws NoConnectionException
      */
     private function throwIfNotConnected()
@@ -952,8 +1016,6 @@ class Validator
      * new line, otherwise it prints stuff <pre>.
      *
      * @param string $str
-     *
-     * @return void
      */
     private function debug($str)
     {
@@ -971,8 +1033,6 @@ class Validator
      * Adds a message to the log array
      *
      * @param string $msg
-     *
-     * @return void
      */
     private function log($msg)
     {
@@ -995,7 +1055,7 @@ class Validator
     }
 
     /**
-     * Returns the log array
+     * Returns the log array.
      *
      * @return array
      */
@@ -1005,9 +1065,7 @@ class Validator
     }
 
     /**
-     * Truncates the log array
-     *
-     * @return void
+     * Truncates the log array.
      */
     public function clearLog()
     {
@@ -1020,7 +1078,7 @@ class Validator
      * @param string $name
      * @param array  $args
      *
-     * @return void
+     * @return mixed
      */
     public function __call($name, $args)
     {
@@ -1035,9 +1093,7 @@ class Validator
     /**
      * Set the desired connect timeout.
      *
-     * @param int $timeout Connect timeout in seconds
-     *
-     * @return void
+     * @param int $timeout Connect timeout in seconds.
      */
     public function setConnectTimeout($timeout)
     {
@@ -1058,8 +1114,6 @@ class Validator
      * Set connect port.
      *
      * @param int $port
-     *
-     * @return void
      */
     public function setConnectPort($port)
     {
@@ -1078,8 +1132,6 @@ class Validator
 
     /**
      * Turn on "catch-all" detection.
-     *
-     * @return void
      */
     public function enableCatchAllTest()
     {
@@ -1088,8 +1140,6 @@ class Validator
 
     /**
      * Turn off "catch-all" detection.
-     *
-     * @return void
      */
     public function disableCatchAllTest()
     {
@@ -1110,8 +1160,6 @@ class Validator
      * Set whether "catch-all" results are considered valid or not.
      *
      * @param bool $flag When true, "catch-all" accounts are considered valid
-     *
-     * @return void
      */
     public function setCatchAllValidity($flag)
     {
@@ -1131,9 +1179,9 @@ class Validator
     /**
      * Camelizes a string.
      *
-     * @param string $id A string to camelize
+     * @param string $id String to camelize.
      *
-     * @return string The camelized string
+     * @return string
      */
     private static function camelize($id)
     {

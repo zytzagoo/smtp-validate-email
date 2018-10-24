@@ -2,6 +2,7 @@
 
 namespace SMTPValidateEmail\Tests\Functional;
 
+use SMTPValidateEmail\Exceptions\NoConnection;
 use SMTPValidateEmail\Validator;
 use SMTPValidateEmail\Tests\TestCase;
 
@@ -157,14 +158,13 @@ class ValidatorTest extends TestCase
         $this->assertContains($needle, $last_line);
     }
 
-    /**
-     * @expectedException SMTPValidateEmail\Exceptions\NoConnection
-     */
     public function testRejectedConnection()
     {
         if (!$this->isSmtpServerRunning()) {
             $this->markTestSkipped('smtp server not running.');
         }
+
+        $this->expectException(NoConnection::class);
 
         $this->makeSmtpRejectConnections();
 
@@ -182,14 +182,14 @@ class ValidatorTest extends TestCase
         $this->restoreSavedJimConfigOrTurnOffJim();
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testDisconnections()
     {
         if (!$this->isSmtpServerRunning()) {
             $this->markTestSkipped('smtp server not running.');
         }
+
+        // Hopefully we hit at least one of our exceptions...
+        $this->expectException(\SMTPValidateEmail\Exceptions\Exception::class);
 
         $this->makeSmtpRandomlyDisconnect();
 
