@@ -69,6 +69,13 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         return $response;
     }
 
+    public function makeSmtpRandomlyDisconnect()
+    {
+        $this->saveCurrentJimConfig();
+
+        return $this->changeJimConfig($this->getDisconnectConfig());
+    }
+
     public function makeSmtpRejectConnections()
     {
         $this->saveCurrentJimConfig();
@@ -129,6 +136,22 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         $options = [
             'DisconnectChance' => 1,
             'AcceptChance' => 0,
+            'LinkSpeedAffect' => 0,
+            'LinkSpeedMin' => 1024,
+            'LinkSpeedMax' => 10240,
+            'RejectSenderChance' => 0,
+            'RejectRecipientChance' => 0,
+            'RejectAuthChance' => 0,
+        ];
+
+        return $options;
+    }
+
+    private function getDisconnectConfig()
+    {
+        $options = [
+            'DisconnectChance' => 0.9,
+            'AcceptChance' => 1,
             'LinkSpeedAffect' => 0,
             'LinkSpeedMin' => 1024,
             'LinkSpeedMax' => 10240,

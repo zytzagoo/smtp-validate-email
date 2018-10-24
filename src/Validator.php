@@ -346,65 +346,77 @@ class Validator
 
     protected function performSmtpDance($domain, array $users)
     {
-        // Are we connected?
+        // Bail early if not connected for whatever reason...
+        if (!$this->connected()) {
+            return;
+        }
+
+        try {
+            $this->attemptMailCommands($domain, $users);
+        } catch (UnexpectedResponseException $e) {
+            // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
+            // decide for themselves if such results are considered valid or not
+            $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+        } catch (TimeoutException $e) {
+            // A timeout is a comm failure, so treat the results on that domain
+            // according to $this->no_comm_is_valid as well
+            $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+        }
+    }
+
+    /**
+     * @return void
+     */
+    protected function attemptMailCommands($domain, array $users)
+    {
+        // Bail if HELO doesn't go through...
+        if (!$this->helo()) {
+            return;
+        }
+
+        // Try issuing MAIL FROM
+        if (!$this->mail($this->from_user . '@' . $this->from_domain)) {
+            // MAIL FROM not accepted, we can't talk
+            $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+        }
+
+        /**
+         * If we're still connected, proceed (cause we might get
+         * disconnected, or banned, or greylisted temporarily etc.)
+         * see mail() for more
+         */
         if ($this->connected()) {
-            try {
-                // Say helo, and continue if we can talk
-                if ($this->helo()) {
-                    // try issuing MAIL FROM
-                    if (!$this->mail($this->from_user . '@' . $this->from_domain)) {
-                        // MAIL FROM not accepted, we can't talk
-                        $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
-                    }
+            $this->noop();
 
-                    /**
-                     * If we're still connected, proceed (cause we might get
-                     * disconnected, or banned, or greylisted temporarily etc.)
-                     * see mail() for more
-                     */
-                    if ($this->connected()) {
-                        $this->noop();
+            // Attempt a catch-all test for the domain (if configured to do so)
+            $is_catchall_domain = $this->acceptsAnyRecipient($domain);
 
-                        // Attempt a catch-all test for the domain (if configured to do so)
-                        $is_catchall_domain = $this->acceptsAnyRecipient($domain);
-
-                        // If a catchall domain is detected, and we consider
-                        // accounts on such domains as invalid, mark all the
-                        // users as invalid and move on
-                        if ($is_catchall_domain) {
-                            if (!$this->catchall_is_valid) {
-                                $this->setDomainResults($users, $domain, $this->catchall_is_valid);
-                                return;
-                            }
-                        }
-
-                        // If we're still connected, try issuing rcpts
-                        if ($this->connected()) {
-                            $this->noop();
-                            // RCPT for each user
-                            foreach ($users as $user) {
-                                $address                 = $user . '@' . $domain;
-                                $this->results[$address] = $this->rcpt($address);
-                                $this->noop();
-                            }
-                        }
-
-                        // Saying bye-bye if we're still connected, cause we're done here
-                        if ($this->connected()) {
-                            // Issue a RSET for all the things we just made the MTA do
-                            $this->rset();
-                            $this->disconnect();
-                        }
-                    }
+            // If a catchall domain is detected, and we consider
+            // accounts on such domains as invalid, mark all the
+            // users as invalid and move on
+            if ($is_catchall_domain) {
+                if (!$this->catchall_is_valid) {
+                    $this->setDomainResults($users, $domain, $this->catchall_is_valid);
+                    return;
                 }
-            } catch (UnexpectedResponseException $e) {
-                // Unexpected responses handled as $this->no_comm_is_valid, that way anyone can
-                // decide for themselves if such results are considered valid or not
-                $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
-            } catch (TimeoutException $e) {
-                // A timeout is a comm failure, so treat the results on that domain
-                // according to $this->no_comm_is_valid as well
-                $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+            }
+
+            // If we're still connected, try issuing rcpts
+            if ($this->connected()) {
+                $this->noop();
+                // RCPT for each user
+                foreach ($users as $user) {
+                    $address                 = $user . '@' . $domain;
+                    $this->results[$address] = $this->rcpt($address);
+                    $this->noop();
+                }
+            }
+
+            // Saying bye-bye if we're still connected, cause we're done here
+            if ($this->connected()) {
+                // Issue a RSET for all the things we just made the MTA do
+                $this->rset();
+                $this->disconnect();
             }
         }
     }

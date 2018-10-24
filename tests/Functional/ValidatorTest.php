@@ -181,4 +181,31 @@ class ValidatorTest extends TestCase
         // Turns off smtp server re-configuration done at the beginning...
         $this->restoreSavedJimConfigOrTurnOffJim();
     }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testDisconnections()
+    {
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
+        }
+
+        $this->makeSmtpRandomlyDisconnect();
+
+        $test = function () {
+            $email = 'disconnector@localhost';
+            $inst  = new Validator($email, 'checker@localhost');
+            $inst->setConnectTimeout(1);
+            $inst->setConnectPort(1025);
+            $results = $inst->validate();
+        };
+
+        for ($i = 0; $i <= 1000; $i++) {
+            $test();
+        }
+
+        // Turns off smtp server re-configuration done at the beginning...
+        $this->restoreSavedJimConfigOrTurnOffJim();
+    }
 }
