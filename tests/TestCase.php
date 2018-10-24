@@ -29,8 +29,6 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
 
     public function restoreSavedJimConfigOrTurnOffJim()
     {
-        $result = false;
-
         if ($this->saved_jim_config) {
             $result = $this->changeJimConfig($this->saved_jim_config);
         } else {
