@@ -423,6 +423,7 @@ class Validator
         if (!$this->mail($this->from_user . '@' . $this->from_domain)) {
             // MAIL FROM not accepted, we can't talk
             $this->setDomainResults($users, $domain, $this->no_comm_is_valid);
+            return;
         }
 
         /**
@@ -430,40 +431,34 @@ class Validator
          * disconnected, or banned, or greylisted temporarily etc.)
          * see mail() for more
          */
-        if ($this->connected()) {
-            $this->noop();
+        if (!$this->connected()) {
+            return;
+        }
 
-            // Attempt a catch-all test for the domain (if configured to do so)
-            $is_catchall_domain = $this->acceptsAnyRecipient($domain);
+        // Attempt a catch-all test for the domain (if configured to do so)
+        $is_catchall_domain = $this->acceptsAnyRecipient($domain);
 
-            // If a catchall domain is detected, and we consider
-            // accounts on such domains as invalid, mark all the
-            // users as invalid and move on
-            if ($is_catchall_domain) {
-                if (!$this->catchall_is_valid) {
-                    $this->setDomainResults($users, $domain, $this->catchall_is_valid);
-                    return;
-                }
-            }
-
-            // If we're still connected, try issuing rcpts
-            if ($this->connected()) {
-                $this->noop();
-                // RCPT for each user
-                foreach ($users as $user) {
-                    $address                 = $user . '@' . $domain;
-                    $this->results[$address] = $this->rcpt($address);
-                    $this->noop();
-                }
-            }
-
-            // Saying bye-bye if we're still connected, cause we're done here
-            if ($this->connected()) {
-                // Issue a RSET for all the things we just made the MTA do
-                $this->rset();
-                $this->disconnect();
+        // If a catchall domain is detected, and we consider
+        // accounts on such domains as invalid, mark all the
+        // users as invalid and move on
+        if ($is_catchall_domain) {
+            if (!$this->catchall_is_valid) {
+                $this->setDomainResults($users, $domain, $this->catchall_is_valid);
+                return;
             }
         }
+
+        $this->noop();
+
+        // RCPT for each user
+        foreach ($users as $user) {
+            $address                 = $user . '@' . $domain;
+            $this->results[$address] = $this->rcpt($address);
+        }
+
+        // Issue a RSET for all the things we just made the MTA do
+        $this->rset();
+        $this->disconnect();
     }
 
     /**

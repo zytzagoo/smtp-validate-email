@@ -148,14 +148,14 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
     private function getDisconnectConfig()
     {
         $options = [
-            'DisconnectChance' => 0.5,
-            'AcceptChance' => 1,
+            'DisconnectChance' => 0.9,
+            'AcceptChance' => 0.5,
             'LinkSpeedAffect' => 0,
             'LinkSpeedMin' => 1024,
             'LinkSpeedMax' => 10240,
-            'RejectSenderChance' => 0,
-            'RejectRecipientChance' => 0,
-            'RejectAuthChance' => 0,
+            'RejectSenderChance' => 0.5,
+            'RejectRecipientChance' => 0.5,
+            'RejectAuthChance' => 0.5,
         ];
 
         return $options;
