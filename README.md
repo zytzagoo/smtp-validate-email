@@ -74,7 +74,7 @@ $emails    = [
     'someone.else@example.com'
 ];
 $sender    = 'sender@example.org';
-$validator = new SmtpEmailValidator($emails, $sender):
+$validator = new SmtpEmailValidator($emails, $sender);
 $results   = $validator->validate();
 
 var_dump($results);
