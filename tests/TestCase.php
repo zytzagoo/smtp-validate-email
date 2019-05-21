@@ -29,8 +29,6 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
 
     public function restoreSavedJimConfigOrTurnOffJim()
     {
-        $result = false;
-
         if ($this->saved_jim_config) {
             $result = $this->changeJimConfig($this->saved_jim_config);
         } else {
@@ -67,6 +65,13 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         $response = $this->callSmtpServerApi('DELETE', self::JIM_API_ENDPOINT);
 
         return $response;
+    }
+
+    public function makeSmtpRandomlyDisconnect()
+    {
+        $this->saveCurrentJimConfig();
+
+        return $this->changeJimConfig($this->getDisconnectConfig());
     }
 
     public function makeSmtpRejectConnections()
@@ -135,6 +140,22 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
             'RejectSenderChance' => 0,
             'RejectRecipientChance' => 0,
             'RejectAuthChance' => 0,
+        ];
+
+        return $options;
+    }
+
+    private function getDisconnectConfig()
+    {
+        $options = [
+            'DisconnectChance' => 0.9,
+            'AcceptChance' => 0.5,
+            'LinkSpeedAffect' => 0,
+            'LinkSpeedMin' => 1024,
+            'LinkSpeedMax' => 10240,
+            'RejectSenderChance' => 0.5,
+            'RejectRecipientChance' => 0.5,
+            'RejectAuthChance' => 0.5,
         ];
 
         return $options;

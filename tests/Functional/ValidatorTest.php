@@ -2,6 +2,7 @@
 
 namespace SMTPValidateEmail\Tests\Functional;
 
+use SMTPValidateEmail\Exceptions\NoConnection;
 use SMTPValidateEmail\Validator;
 use SMTPValidateEmail\Tests\TestCase;
 
@@ -157,14 +158,38 @@ class ValidatorTest extends TestCase
         $this->assertContains($needle, $last_line);
     }
 
-    /**
-     * @expectedException SMTPValidateEmail\Exceptions\NoConnection
-     */
+    public function testNoopsSentByDefault()
+    {
+        $email = 'test@localhost';
+
+        $inst = new Validator($email, 'allowed-sender@example.org');
+        $inst->setConnectTimeout(1);
+        $inst->setConnectPort(1025);
+        $inst->validate();
+        $log = $inst->getLog();
+        $this->assertRegexp('/NOOP/', implode('', $log));
+    }
+
+    public function testNoopsDisabled()
+    {
+        $email = 'test@localhost';
+
+        $inst = new Validator($email, 'allowed-sender@example.org');
+        $inst->setConnectTimeout(1);
+        $inst->setConnectPort(1025);
+        $inst->sendNoops(false);
+        $inst->validate();
+        $log = $inst->getLog();
+        $this->assertNotRegexp('/NOOP/', implode('', $log));
+    }
+
     public function testRejectedConnection()
     {
         if (!$this->isSmtpServerRunning()) {
             $this->markTestSkipped('smtp server not running.');
         }
+
+        $this->expectException(NoConnection::class);
 
         $this->makeSmtpRejectConnections();
 
@@ -177,6 +202,33 @@ class ValidatorTest extends TestCase
         };
 
         $test();
+
+        // Turns off smtp server re-configuration done at the beginning...
+        $this->restoreSavedJimConfigOrTurnOffJim();
+    }
+
+    public function testDisconnections()
+    {
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
+        }
+
+        // Hopefully we hit at least one of our exceptions...
+        $this->expectException(\SMTPValidateEmail\Exceptions\Exception::class);
+
+        $this->makeSmtpRandomlyDisconnect();
+
+        $test = function () {
+            $email = 'disconnector@localhost';
+            $inst  = new Validator($email, 'checker@localhost');
+            $inst->setConnectTimeout(1);
+            $inst->setConnectPort(1025);
+            $results = $inst->validate();
+        };
+
+        for ($i = 0; $i <= 1000; $i++) {
+            $test();
+        }
 
         // Turns off smtp server re-configuration done at the beginning...
         $this->restoreSavedJimConfigOrTurnOffJim();

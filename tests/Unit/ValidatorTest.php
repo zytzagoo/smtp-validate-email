@@ -140,4 +140,18 @@ class ValidatorTest extends TestCase
         $this->expectOutputRegex('/connecting to invalid.localhost:25/i');
         $this->expectOutputRegex('/unable to connect\. exception caught:/i');
     }
+
+    public function testSendNoopsOption()
+    {
+        $inst = new Validator();
+
+        // Sending NOOPs by default.
+        $this->assertTrue($inst->sendingNoops());
+
+        // Testing that getter/setter works...
+        $inst->sendNoops(false);
+        $this->assertFalse($inst->sendingNoops());
+        $inst->sendNoops(true);
+        $this->assertTrue($inst->sendingNoops());
+    }
 }
