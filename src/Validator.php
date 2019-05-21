@@ -1184,7 +1184,9 @@ class Validator
     }
 
     /**
-     * Turn off sending NOOP commands.
+     * Control sending of NOOP commands.
+     *
+     * @param bool $val
      */
     public function sendNoops($val)
     {
