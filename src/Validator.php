@@ -92,6 +92,13 @@ class Validator
         'noop' => 60
     ];
 
+    /**
+     * Whether NOOP commands are sent at all.
+     *
+     * @var bool
+     */
+    protected $send_noops = true;
+
     const CRLF = "\r\n";
 
     // Some smtp response codes
@@ -798,6 +805,11 @@ class Validator
      */
     protected function noop()
     {
+        // Bail if NOOPs are not to be sent.
+        if (!$this->send_noops) {
+            return;
+        }
+
         $this->send('NOOP');
 
         /**
@@ -1169,6 +1181,22 @@ class Validator
     public function getCatchAllValidity()
     {
         return $this->catchall_is_valid;
+    }
+
+    /**
+     * Turn off sending NOOP commands.
+     */
+    public function sendNoops($val)
+    {
+        $this->send_noops = (bool) $val;
+    }
+
+    /**
+     * @return bool
+     */
+    public function sendingNoops()
+    {
+        return $this->send_noops;
     }
 
     /**

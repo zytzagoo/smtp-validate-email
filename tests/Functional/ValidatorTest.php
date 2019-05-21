@@ -158,6 +158,31 @@ class ValidatorTest extends TestCase
         $this->assertContains($needle, $last_line);
     }
 
+    public function testNoopsSentByDefault()
+    {
+        $email = 'test@localhost';
+
+        $inst = new Validator($email, 'allowed-sender@example.org');
+        $inst->setConnectTimeout(1);
+        $inst->setConnectPort(1025);
+        $inst->validate();
+        $log = $inst->getLog();
+        $this->assertRegexp('/NOOP/', implode('', $log));
+    }
+
+    public function testNoopsDisabled()
+    {
+        $email = 'test@localhost';
+
+        $inst = new Validator($email, 'allowed-sender@example.org');
+        $inst->setConnectTimeout(1);
+        $inst->setConnectPort(1025);
+        $inst->sendNoops(false);
+        $inst->validate();
+        $log = $inst->getLog();
+        $this->assertNotRegexp('/NOOP/', implode('', $log));
+    }
+
     public function testRejectedConnection()
     {
         if (!$this->isSmtpServerRunning()) {

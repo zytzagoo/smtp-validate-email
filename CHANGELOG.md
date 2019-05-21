@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- n/a
+- Option to disable sending NOOP commands during validation (off by default, to preserve existing behavior)
 
 ### Changed
 - n/a
