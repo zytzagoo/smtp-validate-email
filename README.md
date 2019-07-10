@@ -136,14 +136,14 @@ server-stop                    Stops smtp server if it's running
 (MAILHOG)                      Downloads platform-specific mailhog binary
 ```
 
-So, run `make install` to get started. Afterwards you should be able to run the tests.
+So, run `make install` to get started. Afterwards you should be able to run the tests (`make test`).
 
 Tests are powered by `phpunit` and a local `./bin/mailhog` instance running on port 1025.
-If and SMTP server is unavailable, tests requiring it are marked as skipped.
+Tests requiring an SMTP server are marked as skipped (if/when the SMTP server is unavailable).
 
 Pull requests are welcome!
 
-In order to get your pull-request merged, please follow these simple rules:
+In order to get your pull request merged, please follow these simple rules:
 
 * all code submissions must pass cleanly (no errors) with `make test`
 * stick to existing code style (`phpcs` is used)
