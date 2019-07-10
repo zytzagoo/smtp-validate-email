@@ -11,6 +11,8 @@ use SMTPValidateEmail\Tests\TestCase;
  */
 class ValidatorTest extends TestCase
 {
+    const CONNECT_PORT = 1025;
+
     public function testNoConnIsValid()
     {
         // Testing no connection, so using a non-existent host on .localhost
@@ -55,7 +57,7 @@ class ValidatorTest extends TestCase
         $sender = 'not-allowed@example.org';
 
         $inst = new Validator($email, $sender);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $inst->setConnectTimeout(1);
         $this->assertFalse($inst->no_comm_is_valid);
         $results = $inst->validate();
@@ -79,7 +81,7 @@ class ValidatorTest extends TestCase
 
         $inst = new Validator($email, 'allowed-sender@example.org');
         $inst->setConnectTimeout(1);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $results = $inst->validate();
 
         $this->assertTrue($results[$email]);
@@ -93,12 +95,12 @@ class ValidatorTest extends TestCase
 
         $emails = [
             'user@localhost',
-            'tester@localhost'
+            'tester@localhost',
         ];
 
         $inst = new Validator($emails, 'allowed-sender@example.org');
         $inst->setConnectTimeout(1);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $inst->enableCatchAllTest();
 
         $results = $inst->validate();
@@ -117,7 +119,7 @@ class ValidatorTest extends TestCase
 
         $inst = new Validator($email, 'allowed-sender@example.org');
         $inst->setConnectTimeout(1);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $inst->enableCatchAllTest();
 
         // If a catch-all is detected, the results are not considered valid
@@ -160,11 +162,15 @@ class ValidatorTest extends TestCase
 
     public function testNoopsSentByDefault()
     {
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
+        }
+
         $email = 'test@localhost';
 
         $inst = new Validator($email, 'allowed-sender@example.org');
         $inst->setConnectTimeout(1);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $inst->validate();
         $log = $inst->getLog();
         $this->assertRegexp('/NOOP/', implode('', $log));
@@ -172,11 +178,15 @@ class ValidatorTest extends TestCase
 
     public function testNoopsDisabled()
     {
+        if (!$this->isSmtpServerRunning()) {
+            $this->markTestSkipped('smtp server not running.');
+        }
+
         $email = 'test@localhost';
 
         $inst = new Validator($email, 'allowed-sender@example.org');
         $inst->setConnectTimeout(1);
-        $inst->setConnectPort(1025);
+        $inst->setConnectPort(self::CONNECT_PORT);
         $inst->sendNoops(false);
         $inst->validate();
         $log = $inst->getLog();
@@ -197,7 +207,7 @@ class ValidatorTest extends TestCase
             $email = 'chaos@localhost';
             $inst  = new Validator($email, 'alice@localhost');
             $inst->setConnectTimeout(1);
-            $inst->setConnectPort(1025);
+            $inst->setConnectPort(self::CONNECT_PORT);
             $results = $inst->validate();
         };
 
@@ -222,7 +232,7 @@ class ValidatorTest extends TestCase
             $email = 'disconnector@localhost';
             $inst  = new Validator($email, 'checker@localhost');
             $inst->setConnectTimeout(1);
-            $inst->setConnectPort(1025);
+            $inst->setConnectPort(self::CONNECT_PORT);
             $results = $inst->validate();
         };
 

@@ -18,7 +18,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         $running = false;
 
         // @codingStandardsIgnoreLine
-        $fp = /** @scrutinizer ignore-unhandled */ @fsockopen('localhost', 1025);
+        $fp = /** @scrutinizer ignore-unhandled */ @fsockopen('localhost', static::CONNECT_PORT);
         if (false !== $fp) {
             $running = true;
             fclose($fp);
