@@ -116,8 +116,8 @@ class ValidatorTest extends TestCase
         $this->assertFalse($inst->isCatchAllEnabled());
         $this->assertTrue($inst->getCatchAllValidity());
 
-        $inst->setConnectPort(1025);
-        $this->assertSame(1025, $inst->getConnectPort());
+        $inst->setConnectPort(12345);
+        $this->assertSame(12345, $inst->getConnectPort());
 
         $inst->setConnectTimeout(1);
         $this->assertSame(1, $inst->getConnectTimeout());
