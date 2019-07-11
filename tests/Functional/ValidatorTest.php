@@ -31,7 +31,7 @@ class ValidatorTest extends TestCase
         $log       = $inst->getLog();
         $last_line = \array_pop($log);
         $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
-        $this->assertContains($needle, $last_line);
+        $this->assertStringContainsString($needle, $last_line);
 
         // When changed, it should change the returned result
         $inst->no_conn_is_valid = true;
@@ -144,7 +144,7 @@ class ValidatorTest extends TestCase
         $log       = $inst->getLog();
         $last_line = \array_pop($log);
         $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
-        $this->assertContains($needle, $last_line);
+        $this->assertStringContainsString($needle, $last_line);
     }
 
     public function testIssue35()
@@ -157,7 +157,7 @@ class ValidatorTest extends TestCase
         $log       = $inst->getLog();
         $last_line = \array_pop($log);
         $needle    = 'Unable to connect. Exception caught: Cannot open a connection to remote host';
-        $this->assertContains($needle, $last_line);
+        $this->assertStringContainsString($needle, $last_line);
     }
 
     public function testNoopsSentByDefault()

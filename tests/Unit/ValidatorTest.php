@@ -4,6 +4,7 @@ namespace SMTPValidateEmail\Tests\Unit;
 
 use \SMTPValidateEmail\Tests\TestCase;
 use \SMTPValidateEmail\Validator;
+use PHPUnit\Framework\Error\Error;
 
 /**
  * Test cases for the Validator class.
@@ -49,7 +50,7 @@ class ValidatorTest extends TestCase
         $this->assertNotContains('test', $instance->log, '`test` does not exist in log any more');
 
         // Unknown methods trigger E_USER_ERROR
-        $this->expectException(\PHPUnit_Framework_Error::class);
+        $this->expectException(Error::class);
         $instance->undefined_method();
     }
 
@@ -62,48 +63,6 @@ class ValidatorTest extends TestCase
         $this->assertArrayHasKey('domains', $results1, '`domains` key is missing.');
         $this->assertArrayNotHasKey('domains', $results2, '`domains` key present, but it shouldnt be.');
         $this->assertSame([], $results2, 'getResults() is not empty');
-    }
-
-    public function testSetEmails()
-    {
-        $emails   = [
-            'email@example.org',
-            'some@some-other-example.org'
-        ];
-        $expected = [
-            'example.org' => ['email'],
-            'some-other-example.org' => ['some']
-        ];
-
-        $inst = new Validator($emails);
-        $this->assertAttributeEquals($expected, 'domains', $inst);
-        $inst->setEmails([]);
-        $this->assertAttributeEquals([], 'domains', $inst);
-        $inst->setEmails($emails);
-        $this->assertAttributeEquals($expected, 'domains', $inst);
-
-        // Test setEmails with a single string
-        $inst->setEmails('test@example.org');
-        $this->assertAttributeEquals(['example.org' => ['test']], 'domains', $inst);
-    }
-
-    public function testSetSender()
-    {
-        $inst = new Validator();
-        $this->assertAttributeEquals('user', 'from_user', $inst);
-        $this->assertAttributeEquals('localhost', 'from_domain', $inst);
-
-        $inst = new Validator([], 'email@example.org');
-        $this->assertAttributeEquals('email', 'from_user', $inst);
-        $this->assertAttributeEquals('example.org', 'from_domain', $inst);
-    }
-
-    public function testValidateMethodWithEmptyParams()
-    {
-        $inst = new Validator();
-        $inst->validate();
-        $this->assertAttributeEquals('user', 'from_user', $inst);
-        $this->assertAttributeEquals('localhost', 'from_domain', $inst);
     }
 
     public function testSomeSettersGetters()

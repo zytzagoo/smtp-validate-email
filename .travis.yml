@@ -8,9 +8,6 @@ cache:
     - $HOME/.composer/cache/files
 
 php:
-  - 5.6
-  - 7.0
-  - 7.1
   - 7.2
   - 7.3
   - 7.4
@@ -36,7 +33,7 @@ jobs:
     - php: nightly
   include:
     - stage: Coverage
-      php: 7.1
+      php: 7.3
       before_script:
         - mv ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini{.disabled,}
         - if [[ ! $(php -m | grep -si xdebug) ]]; then echo "xdebug required for coverage"; exit 1; fi
@@ -48,6 +45,6 @@ jobs:
       after_success:
         - bash <(curl -s https://codecov.io/bash) -f ./clover.xml
     - stage: CodeStyle
-      php: 7.1
+      php: 7.3
       script:
         - ./vendor/bin/phpcs -n

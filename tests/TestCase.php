@@ -7,7 +7,7 @@ namespace SMTPValidateEmail\Tests;
  *
  * @package ZWF\GoogleFontsOptimizer\Tests
  */
-abstract class TestCase extends \PHPUnit_Framework_TestCase
+abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
     const JIM_API_ENDPOINT = '/api/v2/jim';
 
