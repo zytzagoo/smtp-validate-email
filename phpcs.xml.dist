@@ -9,7 +9,7 @@
     <arg value="sp"/>
 
     <!-- Check for cross-version support for PHP -->
-    <config name="testVersion" value="5.6"/>
+    <config name="testVersion" value="5.6-"/>
     <rule ref="PHPCompatibility"/>
 
     <!-- PSR2 + some additions -->
