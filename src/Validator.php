@@ -1055,7 +1055,14 @@ class Validator
      */
     private function stamp($msg)
     {
-        $date = \DateTime::createFromFormat('U.u', sprintf('%.f', microtime(true)))->format('Y-m-d\TH:i:s.uO');
+        $currentLocale = \setlocale(LC_NUMERIC, '0');
+        \setlocale(LC_NUMERIC, 'C');
+
+        $microtime = (string) microtime(true);
+
+        \setlocale(LC_NUMERIC, $currentLocale);
+
+        $date = \DateTime::createFromFormat('U.u', $microtime)->format('Y-m-d\TH:i:s.uO');
         $line = '[' . $date . '] ' . $msg;
 
         return $line;
