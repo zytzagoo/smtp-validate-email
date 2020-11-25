@@ -72,7 +72,7 @@ server-stop: ## Stops smtp server if it's running
 	./bin/stop-server.sh $(PIDFILE)
 
 $(PIDFILE): ## Starts the smtp server
-	$(MAILHOG) & echo $$! > $@
+	$(MAILHOG) -api-bind-addr=127.0.0.1:8025 -ui-bind-addr=127.0.0.1:8025 -smtp-bind-addr=127.0.0.1:1025 & echo $$! > $@
 
 $(MAILHOG): ## Downloads platform-specific mailhog binary
 #	@echo $(MAILHOG_URL)
