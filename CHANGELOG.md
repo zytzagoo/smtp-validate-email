@@ -3,12 +3,15 @@
 ## [Unreleased]
 ### Added
 - Option to disable sending NOOP commands during validation (off by default, to preserve existing behavior)
+- CI: run against php 7.4 too (#57)
 
 ### Changed
-- n/a
+- Readme changes (#52, #59)
+- Dev dependencies bumped
+- Improved tests
 
 ### Fixed
-- n/a
+- No longer explodes when running on locales that use something other than a `.` as decimal separator - big thanks to @BenMorel (#58, #59)
 
 ## [1.0.0] - 2017-11-10
 ### Added
