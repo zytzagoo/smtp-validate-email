@@ -58,6 +58,9 @@ clean: ## Removes installed dev dependencies
 	rm -rf ./vendor
 	rm -rf $(MAILHOG)
 
+lint: ## Run phpcs
+	"./vendor/bin/phpcs"
+
 test: server-start ## Runs tests
 	"./vendor/bin/phpunit" --no-coverage
 	make server-stop
@@ -79,4 +82,4 @@ $(MAILHOG): ## Downloads platform-specific mailhog binary
 	wget $(MAILHOG_URL) -O $@
 	chmod +x $(MAILHOG)
 
-.PHONY: help install test clean coverage server-start server-stop
+.PHONY: help install clean lint test coverage server-start server-stop
