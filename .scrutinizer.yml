@@ -20,7 +20,7 @@ build:
                 neo4j: false
                 rabbitmq: false
                 php:
-                    version: 7.1
+                    version: 7.3
             cache:
                 disabled: false
                 directories:
