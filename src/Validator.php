@@ -1055,10 +1055,33 @@ class Validator
      */
     private function stamp($msg)
     {
-        $date = \DateTime::createFromFormat('U.u', sprintf('%.f', microtime(true)))->format('Y-m-d\TH:i:s.uO');
-        $line = '[' . $date . '] ' . $msg;
+        $line = '[' . $this->getLogDate() . '] ' . $msg;
 
         return $line;
+    }
+
+    /**
+     * Logging helper which returns (formatted) current date and time
+     * (with microseconds) but avoids sprintf/microtime(true) combo.
+     * Empty string returned on failure.
+     *
+     * @see https://github.com/zytzagoo/smtp-validate-email/pull/58
+     *
+     * @return string
+     */
+    public function getLogDate()
+    {
+        $parts     = gettimeofday(false);
+        $microtime = $parts['sec'] . '.' . $parts['usec'];
+
+        $dt = \DateTime::createFromFormat('U.u', $microtime);
+
+        $date = '';
+        if (false !== $dt) {
+            $date = $dt->format('Y-m-d\TH:i:s.uO');
+        }
+
+        return $date;
     }
 
     /**

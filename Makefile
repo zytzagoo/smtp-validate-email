@@ -15,7 +15,9 @@ endif
 UNAME := $(call lc,$(UNAME))
 
 PLAT=386
-uname_P := $(shell sh -c 'uname -p 2>/dev/null || echo not')
+# https://apple.stackexchange.com/questions/140651/why-does-arch-output-i386
+# https://stackoverflow.com/questions/12763296/os-x-arch-command-incorrect
+UNAME_P := $(shell sh -c 'uname -m 2>/dev/null || echo not')
 ifeq ($(UNAME_P),x86_64)
 	PLAT := amd64
 endif
@@ -26,7 +28,7 @@ ifneq ($(filter arm%,$(UNAME_P)),)
 	PLAT := arm
 endif
 
-MAILHOG_URL=https://github.com/mailhog/MailHog/releases/download/v1.0.0/MailHog_$(UNAME)_$(PLAT)
+MAILHOG_URL=https://github.com/mailhog/MailHog/releases/download/v1.0.1/MailHog_$(UNAME)_$(PLAT)
 
 help: ## What you're currently reading
 	@IFS=$$'\n' ; \
@@ -52,8 +54,12 @@ install: ## Installs dev dependencies
 	make $(MAILHOG)
 
 clean: ## Removes installed dev dependencies
+	rm composer.lock
 	rm -rf ./vendor
 	rm -rf $(MAILHOG)
+
+lint: ## Run phpcs
+	"./vendor/bin/phpcs"
 
 test: server-start ## Runs tests
 	"./vendor/bin/phpunit" --no-coverage
@@ -69,11 +75,11 @@ server-stop: ## Stops smtp server if it's running
 	./bin/stop-server.sh $(PIDFILE)
 
 $(PIDFILE): ## Starts the smtp server
-	$(MAILHOG) & echo $$! > $@
+	$(MAILHOG) -api-bind-addr=127.0.0.1:8025 -ui-bind-addr=127.0.0.1:8025 -smtp-bind-addr=127.0.0.1:1025 & echo $$! > $@
 
 $(MAILHOG): ## Downloads platform-specific mailhog binary
 #	@echo $(MAILHOG_URL)
 	wget $(MAILHOG_URL) -O $@
 	chmod +x $(MAILHOG)
 
-.PHONY: help install test clean coverage server-start server-stop
+.PHONY: help install clean lint test coverage server-start server-stop

@@ -11,8 +11,6 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
     const JIM_API_ENDPOINT = '/api/v2/jim';
 
-    protected $saved_jim_config = [];
-
     protected function isSmtpServerRunning()
     {
         $running = false;
@@ -27,40 +25,29 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         return $running;
     }
 
-    public function restoreSavedJimConfigOrTurnOffJim()
-    {
-        if ($this->saved_jim_config) {
-            $result = $this->changeJimConfig($this->saved_jim_config);
-        } else {
-            // If we don't have a saved config, there's nothing to restore,
-            // but we have to turn off jim since someone somewhere turned it on...
-            $result = $this->disableJim();
-        }
-
-        return $result;
-    }
-
     private function callSmtpServerApi($method, $endpoint = '/', $data = null)
     {
-        $server = 'http://0.0.0.0:8025';
+        $server = 'http://127.0.0.1:8025';
         $url    = $server . $endpoint;
 
         $options = [
             'http' => [
                 'method'  => $method,
                 'content' => json_encode($data),
-                'header'  => "Content-Type: application/json\r\nAccept: application/json\r\n"
+                'header'  => "Content-Type: application/json\r\nAccept: application/json\r\n",
+                'ignore_errors' => true,
             ],
         ];
 
-        $context  = stream_context_create($options);
-        $result   = @file_get_contents($url, false, $context); // @codingStandardsIgnoreLine
+        $context = stream_context_create($options);
+        $result  = file_get_contents($url, false, $context);
+        // var_dump($http_response_header, $result);
         $response = json_decode($result, true);
 
         return $response;
     }
 
-    private function disableJim()
+    protected function disableJim()
     {
         $response = $this->callSmtpServerApi('DELETE', self::JIM_API_ENDPOINT);
 
@@ -69,31 +56,17 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
 
     public function makeSmtpRandomlyDisconnect()
     {
-        $this->saveCurrentJimConfig();
-
         return $this->changeJimConfig($this->getDisconnectConfig());
     }
 
     public function makeSmtpRejectConnections()
     {
-        $this->saveCurrentJimConfig();
-
         return $this->changeJimConfig($this->getRefusedConnectionsConfig());
     }
 
     public function enableJimRejectingSenders()
     {
-        $this->saveCurrentJimConfig();
-
         return $this->changeJimConfig($this->getJimRejectSendersConfig());
-    }
-
-    private function saveCurrentJimConfig()
-    {
-        $cfg = $this->callSmtpServerApi('GET', self::JIM_API_ENDPOINT);
-        if ($cfg) {
-            $this->saved_jim_config = $cfg;
-        }
     }
 
     private function changeJimConfig(array $config)

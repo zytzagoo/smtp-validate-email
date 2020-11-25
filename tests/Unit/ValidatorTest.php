@@ -113,4 +113,21 @@ class ValidatorTest extends TestCase
         $inst->sendNoops(true);
         $this->assertTrue($inst->sendingNoops());
     }
+
+    public function testGetLogDateDoesNotExplodeOnFrLocale()
+    {
+        // Get current and set new locale (hopefully)
+        $currentLocale = \setlocale(LC_NUMERIC, '0');
+        // \setlocale(LC_ALL, 'fr_FR.UTF-8');
+        \setlocale(LC_NUMERIC, 'fr_FR.UTF-8');
+
+        $inst = new Validator();
+        $date = $inst->getLogDate();
+
+        $this->assertIsString($date);
+        $this->assertNotEmpty($date);
+
+        // Restore locale to what it was (hopefully)
+        \setlocale(LC_NUMERIC, $currentLocale);
+    }
 }

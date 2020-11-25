@@ -68,7 +68,7 @@ class ValidatorTest extends TestCase
         $this->assertTrue($results[$email]);
 
         // Turns off smtp server re-configuration done at the beginning...
-        $this->restoreSavedJimConfigOrTurnOffJim();
+        $this->disableJim();
     }
 
     public function testValidSenderWithLocalSmtp()
@@ -201,6 +201,7 @@ class ValidatorTest extends TestCase
 
         $this->expectException(NoConnection::class);
 
+        // Configure Jim how we need it
         $this->makeSmtpRejectConnections();
 
         $test = function () {
@@ -213,8 +214,8 @@ class ValidatorTest extends TestCase
 
         $test();
 
-        // Turns off smtp server re-configuration done at the beginning...
-        $this->restoreSavedJimConfigOrTurnOffJim();
+        // Disable jim when done
+        $this->disableJim();
     }
 
     public function testDisconnections()
@@ -226,6 +227,7 @@ class ValidatorTest extends TestCase
         // Hopefully we hit at least one of our exceptions...
         $this->expectException(\SMTPValidateEmail\Exceptions\Exception::class);
 
+        // Configure Jim how we need it
         $this->makeSmtpRandomlyDisconnect();
 
         $test = function () {
@@ -240,7 +242,7 @@ class ValidatorTest extends TestCase
             $test();
         }
 
-        // Turns off smtp server re-configuration done at the beginning...
-        $this->restoreSavedJimConfigOrTurnOffJim();
+        // Disable jim when done
+        $this->disableJim();
     }
 }
