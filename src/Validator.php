@@ -1071,10 +1071,7 @@ class Validator
      */
     public function getLogDate()
     {
-        $parts     = gettimeofday(false);
-        $microtime = $parts['sec'] . '.' . $parts['usec'];
-
-        $dt = \DateTime::createFromFormat('U.u', $microtime);
+        $dt = \DateTime::createFromFormat('0.u00 U', microtime());
 
         $date = '';
         if (false !== $dt) {
