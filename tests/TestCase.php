@@ -1,17 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace SMTPValidateEmail\Tests;
 
 /**
  * Abstract base class for all test case implementations.
- *
- * @package ZWF\GoogleFontsOptimizer\Tests
  */
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
-    const JIM_API_ENDPOINT = '/api/v2/jim';
+    public const JIM_API_ENDPOINT = '/api/v2/jim';
 
-    protected function isSmtpServerRunning()
+    protected function isSmtpServerRunning(): bool
     {
         $running = false;
 
@@ -28,30 +26,27 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     private function callSmtpServerApi($method, $endpoint = '/', $data = null)
     {
         $server = 'http://127.0.0.1:8025';
-        $url    = $server . $endpoint;
+        $url = $server . $endpoint;
 
         $options = [
             'http' => [
-                'method'  => $method,
+                'method' => $method,
                 'content' => json_encode($data),
-                'header'  => "Content-Type: application/json\r\nAccept: application/json\r\n",
+                'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
                 'ignore_errors' => true,
             ],
         ];
 
         $context = stream_context_create($options);
-        $result  = file_get_contents($url, false, $context);
+        $result = file_get_contents($url, false, $context);
         // var_dump($http_response_header, $result);
-        $response = json_decode($result, true);
 
-        return $response;
+        return json_decode($result, true);
     }
 
     protected function disableJim()
     {
-        $response = $this->callSmtpServerApi('DELETE', self::JIM_API_ENDPOINT);
-
-        return $response;
+        return $this->callSmtpServerApi('DELETE', self::JIM_API_ENDPOINT);
     }
 
     public function makeSmtpRandomlyDisconnect()
@@ -81,14 +76,12 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
             $method = 'POST';
         }
 
-        $response = $this->callSmtpServerApi($method, self::JIM_API_ENDPOINT, $config);
-
-        return $response;
+        return $this->callSmtpServerApi($method, self::JIM_API_ENDPOINT, $config);
     }
 
-    private function getJimRejectSendersConfig()
+    private function getJimRejectSendersConfig(): array
     {
-        $options = [
+        return [
             'DisconnectChance' => 0,
             'AcceptChance' => 1,
             'LinkSpeedAffect' => 0,
@@ -98,13 +91,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
             'RejectRecipientChance' => 0,
             'RejectAuthChance' => 0,
         ];
-
-        return $options;
     }
 
-    private function getRefusedConnectionsConfig()
+    private function getRefusedConnectionsConfig(): array
     {
-        $options = [
+        return [
             'DisconnectChance' => 1,
             'AcceptChance' => 0,
             'LinkSpeedAffect' => 0,
@@ -114,13 +105,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
             'RejectRecipientChance' => 0,
             'RejectAuthChance' => 0,
         ];
-
-        return $options;
     }
 
-    private function getDisconnectConfig()
+    private function getDisconnectConfig(): array
     {
-        $options = [
+        return [
             'DisconnectChance' => 0.9,
             'AcceptChance' => 0.5,
             'LinkSpeedAffect' => 0,
@@ -130,7 +119,5 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
             'RejectRecipientChance' => 0.5,
             'RejectAuthChance' => 0.5,
         ];
-
-        return $options;
     }
 }

@@ -3,12 +3,16 @@
 ## [Unreleased]
 ### Added
 - Option to disable sending NOOP commands during validation (off by default, to preserve existing behavior)
-- CI: run against php 7.4 too (#57)
+- Option to assign/configure socket bind address [setBindAddress()]
 
 ### Changed
 - Readme changes (#52, #59)
 - Dev dependencies bumped
 - Improved tests
+- CI: run travis against php 7.4 too (#57)
+- CI: Add tests and code coverage GH Actions workflows
+- CI: run tests against php 7.4, 8.0 and 8.1
+- Faster failure for non-existing MXs/domains
 
 ### Fixed
 - No longer explodes when running on locales that use something other than a `.` as decimal separator - big thanks to @BenMorel (#58, #59)

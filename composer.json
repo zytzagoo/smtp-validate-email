@@ -8,7 +8,7 @@
       "email"
     ],
     "type": "library",
-    "license": "GPL-3.0+",
+    "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/zytzagoo/smtp-validate-email",
     "support": {
         "source": "https://github.com/zytzagoo/smtp-validate-email",
@@ -22,11 +22,11 @@
         }
     ],
     "require": {
-        "php": ">=7.2"
+        "php": ">=7.2||>=8"
     },
     "require-dev": {
       "dealerdirect/phpcodesniffer-composer-installer": "^0.7.0",
-      "phpunit/phpunit": "^8",
+      "phpunit/phpunit": "^9.5",
       "squizlabs/php_codesniffer": "^3.0",
       "phpcompatibility/php-compatibility": "^9.0"
     },
@@ -39,5 +39,10 @@
       "psr-4": {
         "SMTPValidateEmail\\Tests\\": "tests"
       }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

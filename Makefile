@@ -50,13 +50,17 @@ help: ## What you're currently reading
 	printf "\n"; \
 
 install: ## Installs dev dependencies
+	composer validate --strict
 	composer install
 	make $(MAILHOG)
+	touch /tmp/mailhog.log
 
 clean: ## Removes installed dev dependencies
 	rm composer.lock
 	rm -rf ./vendor
 	rm -rf $(MAILHOG)
+	rm -rf $(PIDFILE)
+	rm -rf /tmp/mailhog.log
 
 lint: ## Run phpcs
 	"./vendor/bin/phpcs"
@@ -66,20 +70,22 @@ test: server-start ## Runs tests
 	make server-stop
 
 coverage: server-start ## Runs tests with code coverage
-	"./vendor/bin/phpunit" --coverage-html=./coverage/ --coverage-clover=./coverage/clover.xml
+	XDEBUG_MODE=coverage "./vendor/bin/phpunit" --coverage-html=./coverage/ --coverage-clover=./coverage/clover.xml
 	make server-stop
 
 server-start: server-stop $(PIDFILE) ## Stops and starts the smtp server
 
 server-stop: ## Stops smtp server if it's running
 	./bin/stop-server.sh $(PIDFILE)
+	test /tmp/mailhog.log && > /tmp/mailhog.log # truncate if exists
 
 $(PIDFILE): ## Starts the smtp server
-	$(MAILHOG) -api-bind-addr=127.0.0.1:8025 -ui-bind-addr=127.0.0.1:8025 -smtp-bind-addr=127.0.0.1:1025 & echo $$! > $@
+	$(MAILHOG) -api-bind-addr=127.0.0.1:8025 -ui-bind-addr=127.0.0.1:8025 -smtp-bind-addr=127.0.0.1:1025 > /tmp/mailhog.log 2>&1 & echo $$! > $@
 
 $(MAILHOG): ## Downloads platform-specific mailhog binary
 #	@echo $(MAILHOG_URL)
-	wget $(MAILHOG_URL) -O $@
+#	wget $(MAILHOG_URL) -O $@
+	curl -L $(MAILHOG_URL) -o $@
 	chmod +x $(MAILHOG)
 
 .PHONY: help install clean lint test coverage server-start server-stop

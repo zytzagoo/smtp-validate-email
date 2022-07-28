@@ -1,10 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace SMTPValidateEmail\Tests\Unit;
 
-use \SMTPValidateEmail\Tests\TestCase;
-use \SMTPValidateEmail\Validator;
-use PHPUnit\Framework\Error\Error;
+use SMTPValidateEmail\Tests\TestCase;
+use SMTPValidateEmail\Validator;
+
+use function setlocale;
 
 /**
  * Test cases for the Validator class.
@@ -14,9 +15,9 @@ class ValidatorTest extends TestCase
     /**
      * Test exceptions exist and are throwable
      */
-    public function testExceptions()
+    public function testExceptions(): void
     {
-        $ns         = '\\SMTPValidateEmail\\Exceptions';
+        $ns = '\\SMTPValidateEmail\\Exceptions';
         $exceptions = [
             'Exception',
             'NoConnection',
@@ -30,14 +31,14 @@ class ValidatorTest extends TestCase
             'UnexpectedResponse'
         ];
         foreach ($exceptions as $name) {
-            $fqcn = $ns . '\\' . $name;
-            $this->expectException($fqcn);
-            $exc = new $fqcn();
-            throw $exc;
+            $exceptionClassName = $ns . '\\' . $name;
+
+            $this->expectException($exceptionClassName);
+            throw new $exceptionClassName();
         }
     }
 
-    public function testOldStyleMethods()
+    public function testOldStyleMethods(): void
     {
         $instance = new Validator();
         $this->assertSame([], $instance->get_log(), 'old get_log() method still works');
@@ -50,22 +51,22 @@ class ValidatorTest extends TestCase
         $this->assertNotContains('test', $instance->log, '`test` does not exist in log any more');
 
         // Unknown methods trigger E_USER_ERROR
-        $this->expectException(Error::class);
+        $this->expectError();
         $instance->undefined_method();
     }
 
-    public function testGetResults()
+    public function testGetResults(): void
     {
-        $inst     = new Validator();
+        $inst = new Validator();
         $results1 = $inst->get_results(); // test old style method call while at it
         $results2 = $inst->getResults(false);
 
         $this->assertArrayHasKey('domains', $results1, '`domains` key is missing.');
-        $this->assertArrayNotHasKey('domains', $results2, '`domains` key present, but it shouldnt be.');
+        $this->assertArrayNotHasKey('domains', $results2, '`domains` key present, but it should not be.');
         $this->assertSame([], $results2, 'getResults() is not empty');
     }
 
-    public function testSomeSettersGetters()
+    public function testSomeSettersGetters(): void
     {
         $inst = new Validator();
 
@@ -91,16 +92,44 @@ class ValidatorTest extends TestCase
         $this->assertFalse($inst->getCatchAllValidity());
     }
 
-    public function testDebugPrint()
+    public function testBindAddressParsingSettingAndGetting(): void
     {
-        $inst        = new Validator('test@invalid.localhost', 'sender@localhost');
+        $inst = new Validator();
+
+        $testcases = [
+            '0' => '0:0',
+            '0:0' => '0:0',
+            '0:7000' => '0:7000',
+            '127.0.0.1' => '127.0.0.1:0',
+            '[::]' => '[::]:0',
+            '[::]:0' => '[::]:0',
+            '[2001:db8::1]:7000' => '[2001:db8::1]:7000',
+            '[2001:569:be89:6200:8936:7907:fcf1:961b]' => '[2001:569:be89:6200:8936:7907:fcf1:961b]:0',
+            // Allowing ipv6 without port and brackets for parity with what is allowed with ipv4
+            '2001:569:be89:6200:8936:7907:fcf1:961b' => '[2001:569:be89:6200:8936:7907:fcf1:961b]:0',
+        ];
+
+        foreach ($testcases as $bindAddress => $expectedResult) {
+            // Php casts array keys internally: https://www.php.net/manual/en/language.types.array.php so we undo it
+            if (is_int($bindAddress)) {
+                $bindAddress = (string) $bindAddress;
+            }
+
+            $inst->setBindAddress($bindAddress);
+            $this->assertEquals($expectedResult, $inst->getBindAddress());
+        }
+    }
+
+    public function testDebugPrint(): void
+    {
+        $inst = new Validator('test@non-existing.domain.', 'sender@localhost');
         $inst->debug = true;
-        $results     = $inst->validate();
-        $this->expectOutputRegex('/connecting to invalid.localhost:25/i');
+        $inst->validate();
+        $this->expectOutputRegex('/connecting to non-existing.domain.:25/i');
         $this->expectOutputRegex('/unable to connect\. exception caught:/i');
     }
 
-    public function testSendNoopsOption()
+    public function testSendNoopsOption(): void
     {
         $inst = new Validator();
 
@@ -114,12 +143,12 @@ class ValidatorTest extends TestCase
         $this->assertTrue($inst->sendingNoops());
     }
 
-    public function testGetLogDateDoesNotExplodeOnFrLocale()
+    public function testGetLogDateDoesNotExplodeOnFrLocale(): void
     {
         // Get current and set new locale (hopefully)
-        $currentLocale = \setlocale(LC_NUMERIC, '0');
+        $currentLocale = setlocale(LC_NUMERIC, '0');
         // \setlocale(LC_ALL, 'fr_FR.UTF-8');
-        \setlocale(LC_NUMERIC, 'fr_FR.UTF-8');
+        setlocale(LC_NUMERIC, 'fr_FR.UTF-8');
 
         $inst = new Validator();
         $date = $inst->getLogDate();
@@ -128,6 +157,6 @@ class ValidatorTest extends TestCase
         $this->assertNotEmpty($date);
 
         // Restore locale to what it was (hopefully)
-        \setlocale(LC_NUMERIC, $currentLocale);
+        setlocale(LC_NUMERIC, $currentLocale);
     }
 }

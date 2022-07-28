@@ -1,16 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace SMTPValidateEmail;
 
-use \SMTPValidateEmail\Exceptions\Exception as Exception;
-use \SMTPValidateEmail\Exceptions\Timeout as TimeoutException;
-use \SMTPValidateEmail\Exceptions\NoTimeout as NoTimeoutException;
-use \SMTPValidateEmail\Exceptions\NoConnection as NoConnectionException;
-use \SMTPValidateEmail\Exceptions\UnexpectedResponse as UnexpectedResponseException;
-use \SMTPValidateEmail\Exceptions\NoHelo as NoHeloException;
-use \SMTPValidateEmail\Exceptions\NoMailFrom as NoMailFromException;
-use \SMTPValidateEmail\Exceptions\NoResponse as NoResponseException;
-use \SMTPValidateEmail\Exceptions\SendFailed as SendFailedException;
+use SMTPValidateEmail\Exceptions\Exception;
+use SMTPValidateEmail\Exceptions\Timeout as TimeoutException;
+use SMTPValidateEmail\Exceptions\NoTimeout as NoTimeoutException;
+use SMTPValidateEmail\Exceptions\NoConnection as NoConnectionException;
+use SMTPValidateEmail\Exceptions\UnexpectedResponse as UnexpectedResponseException;
+use SMTPValidateEmail\Exceptions\NoHelo as NoHeloException;
+use SMTPValidateEmail\Exceptions\NoMailFrom as NoMailFromException;
+use SMTPValidateEmail\Exceptions\NoResponse as NoResponseException;
+use SMTPValidateEmail\Exceptions\SendFailed as SendFailedException;
 
 class Validator
 {
@@ -99,38 +99,38 @@ class Validator
      */
     protected $send_noops = true;
 
-    const CRLF = "\r\n";
+    public const CRLF = "\r\n";
 
     // Some smtp response codes
-    const SMTP_CONNECT_SUCCESS = 220;
-    const SMTP_QUIT_SUCCESS    = 221;
-    const SMTP_GENERIC_SUCCESS = 250;
-    const SMTP_USER_NOT_LOCAL  = 251;
-    const SMTP_CANNOT_VRFY     = 252;
+    public const SMTP_CONNECT_SUCCESS = 220;
+    public const SMTP_QUIT_SUCCESS    = 221;
+    public const SMTP_GENERIC_SUCCESS = 250;
+    public const SMTP_USER_NOT_LOCAL  = 251;
+    public const SMTP_CANNOT_VRFY     = 252;
 
-    const SMTP_SERVICE_UNAVAILABLE = 421;
+    public const SMTP_SERVICE_UNAVAILABLE = 421;
 
     // 450 Requested mail action not taken: mailbox unavailable (e.g.,
     // mailbox busy or temporarily blocked for policy reasons)
-    const SMTP_MAIL_ACTION_NOT_TAKEN = 450;
+    public const SMTP_MAIL_ACTION_NOT_TAKEN = 450;
     // 451 Requested action aborted: local error in processing
-    const SMTP_MAIL_ACTION_ABORTED = 451;
+    public const SMTP_MAIL_ACTION_ABORTED = 451;
     // 452 Requested action not taken: insufficient system storage
-    const SMTP_REQUESTED_ACTION_NOT_TAKEN = 452;
+    public const SMTP_REQUESTED_ACTION_NOT_TAKEN = 452;
 
     // 500 Syntax error (may be due to a denied command)
-    const SMTP_SYNTAX_ERROR = 500;
+    public const SMTP_SYNTAX_ERROR = 500;
     // 502 Comment not implemented
-    const SMTP_NOT_IMPLEMENTED = 502;
-    // 503 Bad sequence of commands (may be due to a denied command)
-    const SMTP_BAD_SEQUENCE = 503;
+    public const SMTP_NOT_IMPLEMENTED = 502;
+    // 503 Bad sequence of commands (may happen due to a denied command)
+    public const SMTP_BAD_SEQUENCE = 503;
 
     // 550 Requested action not taken: mailbox unavailable (e.g., mailbox
     // not found, no access, or command rejected for policy reasons)
-    const SMTP_MBOX_UNAVAILABLE = 550;
+    public const SMTP_MBOX_UNAVAILABLE = 550;
 
     // 554 Seen this from hotmail MTAs, in response to RSET :(
-    const SMTP_TRANSACTION_FAILED = 554;
+    public const SMTP_TRANSACTION_FAILED = 554;
 
     /**
      * List of response codes considered as "greylisted"
@@ -199,7 +199,7 @@ class Validator
      *
      * @var string|null
      */
-    private $host = null;
+    private $host;
 
     /**
      * List of validation results
@@ -212,7 +212,7 @@ class Validator
      * @param array|string $emails Email(s) to validate
      * @param string|null $sender Sender's email address
      */
-    public function __construct($emails = [], $sender = null)
+    public function __construct($emails = [], ?string $sender = null)
     {
         if (!empty($emails)) {
             $this->setEmails($emails);
@@ -248,7 +248,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    public function acceptsAnyRecipient($domain)
+    public function acceptsAnyRecipient(string $domain): bool
     {
         if (!$this->catchall_test) {
             return false;
@@ -290,7 +290,7 @@ class Validator
      * @throws NoTimeoutException
      * @throws SendFailedException
      */
-    public function validate($emails = [], $sender = null)
+    public function validate($emails = [], ?string $sender = null): array
     {
         $this->results = [];
 
@@ -317,7 +317,7 @@ class Validator
      * @throws NoTimeoutException
      * @throws SendFailedException
      */
-    protected function loop()
+    protected function loop(): void
     {
         // Query the MTAs on each domain if we have them
         foreach ($this->domains as $domain => $users) {
@@ -339,12 +339,14 @@ class Validator
      * @param string $domain
      * @return array
      */
-    protected function buildMxs($domain)
+    protected function buildMxs(string $domain): array
     {
         $mxs = [];
 
+        $this->debug('Building MX records for domain: ' . $domain);
+
         // Query the MX records for the current domain
-        list($hosts, $weights) = $this->mxQuery($domain);
+        [$hosts, $weights] = $this->mxQuery($domain);
 
         // Sort out the MX priorities
         foreach ($hosts as $k => $host) {
@@ -363,7 +365,7 @@ class Validator
      *
      * @throws NoTimeoutException
      */
-    protected function attemptConnection(array $mxs)
+    protected function attemptConnection(array $mxs): void
     {
         // Try each host, $_weight unused in the foreach body, but array_keys() doesn't guarantee the order
         foreach ($mxs as $host => $_weight) {
@@ -388,7 +390,7 @@ class Validator
      * @throws NoMailFromException
      * @throws SendFailedException
      */
-    protected function performSmtpDance($domain, array $users)
+    protected function performSmtpDance(string $domain, array $users): void
     {
         // Bail early if not connected for whatever reason...
         if (!$this->connected()) {
@@ -419,7 +421,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function attemptMailCommands($domain, array $users)
+    protected function attemptMailCommands(string $domain, array $users): void
     {
         // Bail if HELO doesn't go through...
         if (!$this->helo()) {
@@ -434,9 +436,8 @@ class Validator
         }
 
         /**
-         * If we're still connected, proceed (cause we might get
-         * disconnected, or banned, or greylisted temporarily etc.)
-         * see mail() for more
+         * If we're still connected, proceed (because we might get disconnected, or banned, or
+         * greylisted temporarily etc.). See mail() for more info.
          */
         if (!$this->connected()) {
             return;
@@ -448,11 +449,9 @@ class Validator
         // If a catchall domain is detected, and we consider
         // accounts on such domains as invalid, mark all the
         // users as invalid and move on
-        if ($is_catchall_domain) {
-            if (!$this->catchall_is_valid) {
-                $this->setDomainResults($users, $domain, $this->catchall_is_valid);
-                return;
-            }
+        if ($is_catchall_domain && !$this->catchall_is_valid) {
+            $this->setDomainResults($users, $domain, $this->catchall_is_valid);
+            return;
         }
 
         $this->noop();
@@ -475,7 +474,7 @@ class Validator
      *
      * @return array
      */
-    public function getResults($include_domains_info = true)
+    public function getResults(bool $include_domains_info = true): array
     {
         if ($include_domains_info) {
             $this->results['domains'] = $this->domains_info;
@@ -495,7 +494,7 @@ class Validator
      *
      * @return void
      */
-    private function setDomainResults(array $users, $domain, $val)
+    private function setDomainResults(array $users, string $domain, bool $val): void
     {
         foreach ($users as $user) {
             $this->results[$user . '@' . $domain] = $val;
@@ -507,7 +506,7 @@ class Validator
      *
      * @return bool
      */
-    protected function connected()
+    protected function connected(): bool
     {
         return is_resource($this->socket);
     }
@@ -522,7 +521,7 @@ class Validator
      *
      * @return void
      */
-    protected function connect($host)
+    protected function connect(string $host): void
     {
         $remote_socket = $host . ':' . $this->connect_port;
         $errnum        = 0;
@@ -530,7 +529,7 @@ class Validator
         $this->host    = $remote_socket;
 
         // Open connection
-        $this->debug('Connecting to ' . $this->host);
+        $this->debug('Connecting to ' . $this->host . ' (timeout: ' . $this->connect_timeout . ')');
         // @codingStandardsIgnoreLine
         $this->socket = /** @scrutinizer ignore-unhandled */ @stream_socket_client(
             $this->host,
@@ -565,7 +564,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function disconnect($quit = true)
+    protected function disconnect(bool $quit = true): void
     {
         if ($quit) {
             $this->quit();
@@ -583,7 +582,7 @@ class Validator
     /**
      * Resets internal state flags to defaults
      */
-    private function resetState()
+    private function resetState(): void
     {
         $this->state['helo'] = false;
         $this->state['mail'] = false;
@@ -600,7 +599,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function helo()
+    protected function helo(): ?bool
     {
         // Don't do it if already done
         if ($this->state['helo']) {
@@ -647,7 +646,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function ehlo()
+    protected function ehlo(): void
     {
         try {
             // Modern
@@ -673,7 +672,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function mail($from)
+    protected function mail(string $from): bool
     {
         if (!$this->state['helo']) {
             throw new NoHeloException('Need HELO before MAIL FROM');
@@ -714,7 +713,7 @@ class Validator
      *
      * @throws NoMailFromException
      */
-    protected function rcpt($to)
+    protected function rcpt(string $to): bool
     {
         // Need to have issued MAIL FROM first
         if (!$this->state['mail']) {
@@ -757,7 +756,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function rset()
+    protected function rset(): void
     {
         $this->send('RSET');
 
@@ -782,7 +781,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function quit()
+    protected function quit(): void
     {
         // Although RFC says QUIT can be issued at any time, we won't
         if ($this->state['helo']) {
@@ -803,7 +802,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function noop()
+    protected function noop(): void
     {
         // Bail if NOOPs are not to be sent.
         if (!$this->send_noops) {
@@ -832,12 +831,12 @@ class Validator
      *
      * @param string $cmd The command to send.
      *
-     * @return int|bool Number of bytes written to the stream.
+     * @return int Number of bytes written to the stream.
      *
      * @throws NoConnectionException
      * @throws SendFailedException
      */
-    protected function send($cmd)
+    protected function send(string $cmd): int
     {
         // Must be connected
         $this->throwIfNotConnected();
@@ -857,7 +856,7 @@ class Validator
     /**
      * Receives a response line from the remote host.
      *
-     * @param int $timeout Timeout in seconds.
+     * @param int|null $timeout Timeout in seconds.
      *
      * @return string Response line from the remote host.
      *
@@ -865,7 +864,7 @@ class Validator
      * @throws TimeoutException
      * @throws NoResponseException
      */
-    protected function recv($timeout = null)
+    protected function recv(?int $timeout = null): string
     {
         // Must be connected
         $this->throwIfNotConnected();
@@ -905,7 +904,7 @@ class Validator
      * @throws TimeoutException
      * @throws UnexpectedResponseException
      */
-    protected function expect($codes, $timeout = null, $empty_response_allowed = false)
+    protected function expect($codes, ?int $timeout = null, bool $empty_response_allowed = false): string
     {
         if (!is_array($codes)) {
             $codes = (array) $codes;
@@ -917,20 +916,20 @@ class Validator
         try {
             $line = $this->recv($timeout);
             $text = $line;
-            while (preg_match('/^[0-9]+-/', $line)) {
+            while (preg_match('/^\d+-/', $line)) {
                 $line  = $this->recv($timeout);
                 $text .= $line;
             }
             sscanf($line, '%d%s', $code, $text);
             // TODO/FIXME: This is terrible to read/comprehend
-            if ($code == self::SMTP_SERVICE_UNAVAILABLE ||
-                (false === $empty_response_allowed && (null === $code || !in_array($code, $codes)))) {
+            if ($code === self::SMTP_SERVICE_UNAVAILABLE ||
+                (false === $empty_response_allowed && (null === $code || !in_array($code, $codes, true)))) {
                 throw new UnexpectedResponseException($line);
             }
         } catch (NoResponseException $e) {
             /**
              * No response in expect() probably means that the remote server
-             * forcibly closed the connection so lets clean up on our end as well?
+             * forcibly closed the connection so let's clean up on our end as well?
              */
             $this->debug('No response in expect(): ' . $e->getMessage());
             $this->disconnect(false);
@@ -947,7 +946,7 @@ class Validator
      *
      * @return array ['user', 'domain']
      */
-    protected function splitEmail($email)
+    protected function splitEmail(string $email): array
     {
         $parts  = explode('@', $email);
         $domain = array_pop($parts);
@@ -961,7 +960,7 @@ class Validator
      *
      * @param array|string $emails List of email addresses (or a single one a string).
      */
-    public function setEmails($emails)
+    public function setEmails($emails): void
     {
         if (!is_array($emails)) {
             $emails = (array) $emails;
@@ -970,7 +969,7 @@ class Validator
         $this->domains = [];
 
         foreach ($emails as $email) {
-            list($user, $domain) = $this->splitEmail($email);
+            [$user, $domain] = $this->splitEmail($email);
             if (!isset($this->domains[$domain])) {
                 $this->domains[$domain] = [];
             }
@@ -983,7 +982,7 @@ class Validator
      *
      * @param string $email
      */
-    public function setSender($email)
+    public function setSender(string $email): void
     {
         $parts             = $this->splitEmail($email);
         $this->from_user   = $parts[0];
@@ -997,8 +996,14 @@ class Validator
      *
      * @return array MX hosts and their weights.
      */
-    protected function mxQuery($domain)
+    protected function mxQuery(string $domain): array
     {
+        // If the domain does not end with a '.', add it (making it an absolute fqdn, which prevents any
+        // further suffixing attempts by wrongly configured resolvers etc.)
+        if (!preg_match('/\.$/', $domain)) {
+            $domain .= '.';
+        }
+
         $hosts  = [];
         $weight = [];
         getmxrr($domain, $hosts, $weight);
@@ -1011,7 +1016,7 @@ class Validator
      *
      * @throws NoConnectionException
      */
-    private function throwIfNotConnected()
+    private function throwIfNotConnected(): void
     {
         if (!$this->connected()) {
             throw new NoConnectionException('No connection');
@@ -1020,14 +1025,16 @@ class Validator
 
     /**
      * Debug helper. If it detects a CLI env, it just dumps given `$str` on a
-     * new line, otherwise it prints stuff <pre>.
+     * new line, otherwise it prints stuff wrapped in <pre> tags.
      *
      * @param string $str
      */
-    private function debug($str)
+    private function debug(string $str): void
     {
         $str = $this->stamp($str);
+
         $this->log($str);
+
         if ($this->debug) {
             if ('cli' !== PHP_SAPI) {
                 $str = '<br/><pre>' . htmlspecialchars($str) . '</pre>';
@@ -1041,7 +1048,7 @@ class Validator
      *
      * @param string $msg
      */
-    private function log($msg)
+    private function log(string $msg): void
     {
         $this->log[] = $msg;
     }
@@ -1053,11 +1060,9 @@ class Validator
      *
      * @return string
      */
-    private function stamp($msg)
+    private function stamp(string $msg): string
     {
-        $line = '[' . $this->getLogDate() . '] ' . $msg;
-
-        return $line;
+        return '[' . $this->getLogDate() . '] ' . $msg;
     }
 
     /**
@@ -1069,7 +1074,7 @@ class Validator
      *
      * @return string
      */
-    public function getLogDate()
+    public function getLogDate(): string
     {
         $dt = \DateTime::createFromFormat('0.u00 U', microtime());
 
@@ -1086,7 +1091,7 @@ class Validator
      *
      * @return array
      */
-    public function getLog()
+    public function getLog(): array
     {
         return $this->log;
     }
@@ -1094,7 +1099,7 @@ class Validator
     /**
      * Truncates the log array.
      */
-    public function clearLog()
+    public function clearLog(): void
     {
         $this->log = [];
     }
@@ -1107,14 +1112,14 @@ class Validator
      *
      * @return mixed
      */
-    public function __call($name, $args)
+    public function __call(string $name, array $args)
     {
         $camelized = self::camelize($name);
         if (\method_exists($this, $camelized)) {
             return \call_user_func_array([$this, $camelized], $args);
-        } else {
-            trigger_error('Fatal error: Call to undefined method ' . self::class . '::' . $name . '()', E_USER_ERROR);
         }
+
+        trigger_error('Fatal error: Call to undefined method ' . self::class . '::' . $name . '()', E_USER_ERROR);
     }
 
     /**
@@ -1122,9 +1127,9 @@ class Validator
      *
      * @param int $timeout Connect timeout in seconds.
      */
-    public function setConnectTimeout($timeout)
+    public function setConnectTimeout(int $timeout): void
     {
-        $this->connect_timeout = (int) $timeout;
+        $this->connect_timeout = $timeout;
     }
 
     /**
@@ -1132,7 +1137,7 @@ class Validator
      *
      * @return int
      */
-    public function getConnectTimeout()
+    public function getConnectTimeout(): int
     {
         return $this->connect_timeout;
     }
@@ -1142,9 +1147,9 @@ class Validator
      *
      * @param int $port
      */
-    public function setConnectPort($port)
+    public function setConnectPort(int $port): void
     {
-        $this->connect_port = (int) $port;
+        $this->connect_port = $port;
     }
 
     /**
@@ -1152,7 +1157,7 @@ class Validator
      *
      * @return int
      */
-    public function getConnectPort()
+    public function getConnectPort(): int
     {
         return $this->connect_port;
     }
@@ -1160,7 +1165,7 @@ class Validator
     /**
      * Turn on "catch-all" detection.
      */
-    public function enableCatchAllTest()
+    public function enableCatchAllTest(): void
     {
         $this->catchall_test = true;
     }
@@ -1168,7 +1173,7 @@ class Validator
     /**
      * Turn off "catch-all" detection.
      */
-    public function disableCatchAllTest()
+    public function disableCatchAllTest(): void
     {
         $this->catchall_test = false;
     }
@@ -1178,7 +1183,7 @@ class Validator
      *
      * @return bool
      */
-    public function isCatchAllEnabled()
+    public function isCatchAllEnabled(): bool
     {
         return $this->catchall_test;
     }
@@ -1188,9 +1193,9 @@ class Validator
      *
      * @param bool $flag When true, "catch-all" accounts are considered valid
      */
-    public function setCatchAllValidity($flag)
+    public function setCatchAllValidity(bool $flag): void
     {
-        $this->catchall_is_valid = (bool) $flag;
+        $this->catchall_is_valid = $flag;
     }
 
     /**
@@ -1198,7 +1203,7 @@ class Validator
      *
      * @return bool
      */
-    public function getCatchAllValidity()
+    public function getCatchAllValidity(): bool
     {
         return $this->catchall_is_valid;
     }
@@ -1208,17 +1213,73 @@ class Validator
      *
      * @param bool $val
      */
-    public function sendNoops($val)
+    public function sendNoops(bool $val): void
     {
-        $this->send_noops = (bool) $val;
+        $this->send_noops = $val;
     }
 
     /**
      * @return bool
      */
-    public function sendingNoops()
+    public function sendingNoops(): bool
     {
         return $this->send_noops;
+    }
+
+    /**
+     * Specify the socket bind address.
+     *
+     * This can be used to specify the IP address (v4 or v6) and/or the port number that
+     * PHP will use to access the network. The syntax is ip:port for v4 and [ip]:port for v6.
+     * Setting the IP or the port to 0 lets the system choose the IP and/or port.
+     * When no port is explicitly provided, it's defaulted to 0.
+     *
+     * @param string $bindAddress Socket bind address in `ip:port` or `[ip]:port` syntax
+     *
+     * @return void
+     */
+    public function setBindAddress(string $bindAddress): void
+    {
+        $ipWithPort = $this->parseBindAddress($bindAddress);
+
+        $this->stream_context_args['socket']['bindto'] = $ipWithPort;
+    }
+
+    /**
+     * Get the configured socket bind address. Null means system default is used.
+     *
+     * @return string|null
+     */
+    public function getBindAddress(): ?string
+    {
+        return $this->stream_context_args['socket']['bindto'] ?? null;
+    }
+
+    /**
+     * Parse most commonly used ways of specifying socket bind addresses
+     * into an `ip:port` or `[ip]:port` format/syntax.
+     *
+     * @param string $bindAddress
+     *
+     * @return string
+     */
+    protected function parseBindAddress(string $bindAddress): string
+    {
+        // TODO/FIXME: This should be way more robust if all possible edge-cases are supposed to work
+
+        if (($bindAddress[0] !== '[') && filter_var($bindAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            // If given string does not start with [, but is valid ipv6, wrap it in [] and
+            // assume port is 0
+            $ip = '[' . $bindAddress . ']';
+            $port = '0';
+        } else {
+            // If address starts with [ or does not appear to be ipv6, let parse_url() handle it
+            $parts = @parse_url('https://' . $bindAddress);
+            $ip = $parts['host'] ?? $bindAddress;
+            $port = $parts['port'] ?? '0';
+        }
+
+        return $ip . ':' . $port;
     }
 
     /**
@@ -1228,7 +1289,7 @@ class Validator
      *
      * @return string
      */
-    private static function camelize($id)
+    private static function camelize(string $id): string
     {
         return strtr(
             ucwords(
