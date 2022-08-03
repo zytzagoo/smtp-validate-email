@@ -49,7 +49,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         return $this->callSmtpServerApi('DELETE', self::JIM_API_ENDPOINT);
     }
 
-    public function makeSmtpRandomlyDisconnect()
+    public function makeSmtpDisconnectClients()
     {
         return $this->changeJimConfig($this->getDisconnectConfig());
     }
@@ -110,14 +110,14 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     private function getDisconnectConfig(): array
     {
         return [
-            'DisconnectChance' => 0.9,
-            'AcceptChance' => 0.5,
+            'DisconnectChance' => 1,
+            'AcceptChance' => 1,
             'LinkSpeedAffect' => 0,
             'LinkSpeedMin' => 1024,
             'LinkSpeedMax' => 10240,
-            'RejectSenderChance' => 0.5,
-            'RejectRecipientChance' => 0.5,
-            'RejectAuthChance' => 0.5,
+            'RejectSenderChance' => 0,
+            'RejectRecipientChance' => 0,
+            'RejectAuthChance' => 0,
         ];
     }
 }

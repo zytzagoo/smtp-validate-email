@@ -245,7 +245,7 @@ class ValidatorTest extends TestCase
             $inst  = new Validator($email, 'alice@localhost');
             $inst->setConnectTimeout(1);
             $inst->setConnectPort(self::CONNECT_PORT);
-            $results = $inst->validate();
+            $inst->validate();
         };
 
         $test();
@@ -260,23 +260,17 @@ class ValidatorTest extends TestCase
             $this->markTestSkipped('smtp server not running.');
         }
 
-        // Hopefully we hit at least one of our exceptions...
-        $this->expectException(Exception::class);
+        // Configure Jim how we need it (drop connection, but would otherwise accept anything)
+        $this->makeSmtpDisconnectClients();
 
-        // Configure Jim how we need it
-        $this->makeSmtpRandomlyDisconnect();
+        $email = 'root@localhost';
+        $inst = new Validator($email, 'user@localhost');
+        $inst->setConnectTimeout(1);
+        $inst->setConnectPort(self::CONNECT_PORT);
 
-        $test = static function () {
-            $email = 'disconnector@localhost';
-            $inst  = new Validator($email, 'checker@localhost');
-            $inst->setConnectTimeout(1);
-            $inst->setConnectPort(self::CONNECT_PORT);
-            $results = $inst->validate();
-        };
-
-        for ($i = 0; $i <= 1000; $i++) {
-            $test();
-        }
+        // We should get disconnected, so email not considered valid
+        $results = $inst->validate();
+        $this->assertFalse($results[$email]);
 
         // Disable jim when done
         $this->disableJim();
