@@ -1,13 +1,15 @@
 # Change Log
 
 ## [Unreleased]
+
+## [1.1.0](https://github.com/zytzagoo/smtp-validate-email/compare/v1.0.0...v1.1.0) - 2022-09-11
 ### Added
 - Option to disable sending NOOP commands during validation (off by default, to preserve existing behavior)
 - Option to assign/configure socket bind address [setBindAddress()]
 
 ### Changed
 - Readme changes (#52, #59)
-- Dev dependencies bumped
+- Dev dependencies bumped/changed
 - Improved tests
 - CI: run travis against php 7.4 too (#57)
 - CI: Add tests and code coverage GH Actions workflows
@@ -17,7 +19,7 @@
 ### Fixed
 - No longer explodes when running on locales that use something other than a `.` as decimal separator - big thanks to @BenMorel (#58, #59)
 
-## [1.0.0] - 2017-11-10
+## [1.0.0](https://github.com/zytzagoo/smtp-validate-email/compare/v0.7...v1.0.0) - 2017-11-10
 ### Added
 - Namespaced code
 - Unit and functional tests
