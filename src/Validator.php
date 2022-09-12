@@ -539,6 +539,9 @@ class Validator
             STREAM_CLIENT_CONNECT,
             stream_context_create($this->stream_context_args)
         );
+        
+        // Clear any errors that may have happened due to @ suppression above: https://github.com/zytzagoo/smtp-validate-email/issues/77
+        error_clear_last();
 
         // Check and throw if not connected
         if (!$this->connected()) {
