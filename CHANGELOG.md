@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.1](https://github.com/zytzagoo/smtp-validate-email/compare/v1.1.0...v1.1.1) - 2022-09-12
+### Fixed
+- Call error_clear_last() after @stream_socket_client - See https://github.com/zytzagoo/smtp-validate-email/issues/77
+
 ## [1.1.0](https://github.com/zytzagoo/smtp-validate-email/compare/v1.0.0...v1.1.0) - 2022-09-11
 ### Added
 - Option to disable sending NOOP commands during validation (off by default, to preserve existing behavior)
